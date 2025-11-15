@@ -1,4 +1,4 @@
-# DataStorm – Hệ thống AI cho Chuỗi Cung Ứng
+﻿# DataStorm – Hệ thống AI cho Chuỗi Cung Ứng
 
 ## 1. Tổng quan
 
@@ -123,8 +123,17 @@ Hệ thống sẵn sàng để người mới clone, cài đặt và chạy ngay
 
 - [docs/AI_MODELS_DETAIL.md](docs/AI_MODELS_DETAIL.md) – mô tả đầy đủ từng mô hình, dữ liệu, pipeline.
 - [docs/PROJECT_VIEWS_DETAIL.md](docs/PROJECT_VIEWS_DETAIL.md) – mô tả cấu trúc và dữ liệu của tất cả trang UI.
+- [docs/AI_MODEL_PREDICTION_GUIDE.md](docs/AI_MODEL_PREDICTION_GUIDE.md) – hướng dẫn nhập dữ liệu, chạy dự đoán và diễn giải kết quả trên `/dashboard/ai`.
+- [docs/AI_MODEL_EXPLANATION.md](docs/AI_MODEL_EXPLANATION.md) – giải thích chi tiết input/output và khuyến nghị hành động cho từng mô hình.
 
 ## 14. Tài liệu chi tiết
 
 - [docs/AI_MODELS_DETAIL.md](docs/AI_MODELS_DETAIL.md) – mô tả đầy đủ từng mô hình, dữ liệu, pipeline.
 - [docs/PROJECT_VIEWS_DETAIL.md](docs/PROJECT_VIEWS_DETAIL.md) – mô tả cấu trúc và dữ liệu của tất cả trang UI.
+- [docs/AI_MODEL_PREDICTION_GUIDE.md](docs/AI_MODEL_PREDICTION_GUIDE.md) – hướng dẫn nhập dữ liệu, chạy dự đoán và diễn giải kết quả trên `/dashboard/ai`.
+
+## QA Prediction Testing
+
+- /dashboard/ai/{model_id} sinh form d?a tr�n pp/services/model_registry.py, k�m tooltip gi?i th�ch tru?ng, n�t **Load sample data** v� t?i JSON/CSV m?u d? QA g� th? ngay.
+- B? test normal/edge/error v� sample payload ch�nh th?c n?m trong [docs/AI_MODEL_PREDICTION_TEST_PLAN.md](docs/AI_MODEL_PREDICTION_TEST_PLAN.md); h�y tham chi?u t�i li?u n�y tru?c khi ch?y regression cho t?ng m� h�nh.
+

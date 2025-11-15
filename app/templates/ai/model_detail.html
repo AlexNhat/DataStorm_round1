@@ -1,351 +1,210 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
-{% block title %}{{ model.display_name }} - AI Model Detail{% endblock %}
+{% block title %}{{ model.display_name }} - AI Model{% endblock %}
 
 {% block extra_head %}
 <style>
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-    }
-    .metric-value {
-        font-size: 2.5rem;
-        font-weight: bold;
-    }
-    .form-section {
-        background-color: #f9fafb;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-    }
-    .prediction-result {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-        margin-top: 1rem;
-    }
-    .chart-container {
-        position: relative;
-        height: 400px;
-        margin: 1rem 0;
-    }
+    .summary-card { border-radius: 1rem; padding: 1.5rem; background: white; box-shadow: 0 15px 35px rgba(15,23,42,0.08); }
+    .tab-btn { transition: color .2s, border-color .2s; font-weight: 600; }
+    .form-section { background: #f8fafc; border-radius: 1rem; padding: 1.75rem; }
+    .prediction-box { border-radius: 1rem; padding: 1.5rem; margin-top: 1rem; background: linear-gradient(135deg,#34d399,#059669); color: white; }
+    .info-label { font-weight: 600; color: #475569; }
+    .explain-card { border-radius: 1rem; background: #0f172a; color: #e2e8f0; padding: 1.5rem; }
+    .field-help-icon { color: #94a3b8; cursor: help; font-size: 0.85rem; }
+    .sample-payload { background: #0f172a; color: #f8fafc; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; max-height: 280px; }
+    .table-simple { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .table-simple th, .table-simple td { border: 1px solid #e2e8f0; padding: 0.5rem; text-align: left; }
+    .table-simple th { background: #0f172a; color: #f1f5f9; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Breadcrumb -->
-<div class="mb-4">
-    <nav class="text-sm text-gray-600">
-        <a href="/dashboard" class="hover:text-blue-600">Dashboard</a> / 
-        <a href="/dashboard/ai" class="hover:text-blue-600">AI Models</a> / 
-        <span class="text-gray-800 font-semibold">{{ model.display_name }}</span>
+<div class="mb-6">
+    <nav class="text-sm text-slate-500 space-x-2">
+        <a href="/dashboard" class="hover:text-blue-600">Dashboard</a>
+        <span>/</span>
+        <a href="/dashboard/ai" class="hover:text-blue-600">AI Models</a>
+        <span>/</span>
+        <span class="text-slate-900 font-semibold">{{ model.display_name }}</span>
     </nav>
 </div>
 
-<!-- Header -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <div class="flex items-start justify-between">
+<section class="summary-card mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
         <div class="flex-1">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ model.display_name }}</h1>
-            <div class="flex items-center gap-3 mb-4">
-                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                    {{ model.type.value|upper }}
+            <p class="text-xs uppercase tracking-[0.4em] text-slate-400">AI MODEL</p>
+            <h1 class="text-3xl font-bold text-slate-900 mt-2">{{ model.display_name }}</h1>
+            <p class="text-slate-600 mt-3">{{ model.description }}</p>
+            <div class="flex flex-wrap items-center gap-3 mt-4">
+                <span class="px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-semibold tracking-widest">{{ model.type.value.replace('_',' ')|upper }}</span>
+                <span class="px-3 py-1 rounded-full text-xs font-semibold
+                    {% if model.status.value == 'deployed' %}bg-emerald-100 text-emerald-700{% elif model.status.value == 'analytics' %}bg-indigo-100 text-indigo-700{% else %}bg-amber-100 text-amber-700{% endif %}">
+                    {% if model.status.value == 'deployed' %}Đang hoạt động{% elif model.status.value == 'analytics' %}Chế độ phân tích{% else %}Đang phát triển{% endif %}
                 </span>
-                <span class="px-3 py-1 {% if model.status.value == 'deployed' %}bg-green-100 text-green-800{% elif model.status.value == 'analytics' %}bg-blue-100 text-blue-800{% else %}bg-yellow-100 text-yellow-800{% endif %} rounded-full text-sm font-semibold">
-                    {% if model.status.value == 'deployed' %}✅ Deployed
-                    {% elif model.status.value == 'analytics' %}📊 Analytics
-                    {% else %}🚧 Development{% endif %}
-                </span>
-                <span class="text-sm text-gray-500">Version: {{ model.version }}</span>
+                <span class="text-xs text-slate-500 uppercase tracking-[0.3em]">Version {{ model.version }}</span>
             </div>
-            <p class="text-gray-700">{{ model.description }}</p>
         </div>
         {% if model.docs_path %}
-        <a href="/{{ model.docs_path }}" target="_blank" 
-           class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
-            📖 Xem Documentation
+        <a href="/{{ model.docs_path }}" target="_blank"
+           class="inline-flex items-center gap-2 bg-slate-100 text-slate-800 px-4 py-2 rounded-xl font-semibold hover:bg-slate-200">
+            <i class="fa-regular fa-file-lines"></i> Tài liệu hướng dẫn
         </a>
         {% endif %}
     </div>
+</section>
+
+<div class="bg-white rounded-2xl shadow-lg mb-6">
+    <nav class="flex border-b border-slate-200">
+        <button id="tab-overview" class="tab-btn px-6 py-3 border-b-2 border-blue-600 text-blue-600" onclick="showTab('overview')">Tổng quan</button>
+        <button id="tab-metrics" class="tab-btn px-6 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800" onclick="showTab('metrics')">Metrics & Đánh giá</button>
+        {% if model.api_endpoint %}
+        <button id="tab-predict" class="tab-btn px-6 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800" onclick="showTab('predict')">Thử dự đoán</button>
+        {% endif %}
+        <button id="tab-explain" class="tab-btn px-6 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800" onclick="showTab('explain')">Giải thích</button>
+    </nav>
 </div>
 
-<!-- Tabs -->
-<div class="bg-white rounded-lg shadow-md mb-6">
-    <div class="border-b border-gray-200">
-        <nav class="flex -mb-px">
-            <button onclick="showTab('overview')" id="tab-overview" 
-                    class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-blue-600 text-blue-600">
-                Tổng quan
-            </button>
-            <button onclick="showTab('metrics')" id="tab-metrics" 
-                    class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-                Metrics & Đánh giá
-            </button>
-            {% if model.api_endpoint %}
-            <button onclick="showTab('predict')" id="tab-predict" 
-                    class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-                Thử dự đoán
-            </button>
-            {% endif %}
-            <button onclick="showTab('explain')" id="tab-explain" 
-                    class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-                Giải thích
-            </button>
-        </nav>
-    </div>
-</div>
-
-<!-- Tab Content -->
 <div id="tab-content">
-    <!-- Overview Tab -->
-    <div id="content-overview" class="tab-content">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <!-- Model Info -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold mb-4">📋 Thông tin Mô hình</h2>
-                <table class="w-full text-sm">
-                    <tr class="border-b">
-                        <td class="py-2 font-semibold text-gray-700">Loại mô hình:</td>
-                        <td class="py-2 text-gray-600">{{ model.type.value|title }}</td>
-                    </tr>
-                    <tr class="border-b">
-                        <td class="py-2 font-semibold text-gray-700">Trạng thái:</td>
-                        <td class="py-2 text-gray-600">
-                            {% if model.status.value == 'deployed' %}✅ Đang hoạt động
-                            {% elif model.status.value == 'analytics' %}📊 Dùng trong phân tích
-                            {% else %}🚧 Đang phát triển{% endif %}
-                        </td>
-                    </tr>
-                    <tr class="border-b">
-                        <td class="py-2 font-semibold text-gray-700">Dataset:</td>
-                        <td class="py-2 text-gray-600">{{ model.dataset_info or "N/A" }}</td>
-                    </tr>
-                    <tr class="border-b">
-                        <td class="py-2 font-semibold text-gray-700">Model File:</td>
-                        <td class="py-2 text-gray-600">
-                            {% if model_file_exists %}
-                            <span class="text-green-600">✓ {{ model_file_path }}</span>
+    <section id="content-overview" class="tab-panel">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-slate-900 mb-4">Thông tin mô hình</h2>
+                <dl class="space-y-3 text-sm text-slate-600">
+                    <div class="flex justify-between"><dt class="info-label">Loại mô hình</dt><dd>{{ model.type.value|replace('_',' ')|title }}</dd></div>
+                    <div class="flex justify-between"><dt class="info-label">Trạng thái</dt><dd>{% if model.status.value == 'deployed' %}Đang hoạt động{% elif model.status.value == 'analytics' %}Chế độ phân tích{% else %}Đang phát triển{% endif %}</dd></div>
+                    <div class="flex justify-between"><dt class="info-label">Dataset</dt><dd>{{ model.dataset_info or "Chưa khai báo" }}</dd></div>
+                    <div class="flex justify-between">
+                        <dt class="info-label">Model file</dt>
+                        <dd class="text-right">
+                            {% if model.model_path and model_file_exists %}
+                                Đã tìm thấy ({{ model.model_path }})
+                            {% elif model.model_path %}
+                                File {{ model.model_path }} chưa tồn tại. Vui lòng chạy script train tương ứng.
                             {% else %}
-                            <span class="text-red-600">✗ Không tìm thấy</span>
+                                Mô hình mô phỏng/chiến lược – không yêu cầu file.
                             {% endif %}
-                        </td>
-                    </tr>
-                    {% if model.last_trained %}
-                    <tr class="border-b">
-                        <td class="py-2 font-semibold text-gray-700">Lần train gần nhất:</td>
-                        <td class="py-2 text-gray-600">{{ model.last_trained }}</td>
-                    </tr>
-                    {% endif %}
+                        </dd>
+                    </div>
                     {% if model.api_endpoint %}
-                    <tr>
-                        <td class="py-2 font-semibold text-gray-700">API Endpoint:</td>
-                        <td class="py-2 text-gray-600">
-                            <code class="bg-gray-100 px-2 py-1 rounded">{{ model.api_endpoint }}</code>
-                        </td>
-                    </tr>
+                    <div class="flex justify-between"><dt class="info-label">API Endpoint</dt><dd><code>{{ model.api_endpoint }}</code></dd></div>
                     {% endif %}
-                </table>
+                </dl>
             </div>
-            
-            <!-- Quick Metrics -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold mb-4">📊 Metrics Chính</h2>
-                <div class="space-y-4">
-                    {% for metric in model.metrics %}
-                    <div class="metric-card">
-                        <div class="text-sm opacity-90 mb-1">{{ metric.name }}</div>
-                        <div class="metric-value">
-                            {% if metric.value is not none %}
-                            {{ "%.4f"|format(metric.value) }}{{ metric.unit }}
-                            {% else %}
-                            N/A
-                            {% endif %}
-                        </div>
-                        {% if metric.target %}
-                        <div class="text-sm opacity-75 mt-2">Target: < {{ metric.target }}{{ metric.unit }}</div>
-                        {% endif %}
-                        {% if metric.description %}
-                        <div class="text-xs opacity-60 mt-1">{{ metric.description }}</div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
+            <div class="bg-white rounded-2xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-slate-900 mb-4">Hướng dẫn nhanh</h2>
+                <ul class="list-disc pl-6 text-slate-600 space-y-2 text-sm">
+                    <li>Chuẩn hóa đơn vị trước khi nhập (ngày, °C, mm, USD...)</li>
+                    <li>Sau khi dự đoán, đọc phần “Giải thích kết quả” để hiểu việc cần làm.</li>
+                    <li>Rủi ro cao hoặc drift mạnh → kích hoạt quy trình alert/retrain.</li>
+                    <li>Tham khảo tài liệu chi tiết nếu muốn tích hợp vào pipeline tự động.</li>
+                </ul>
             </div>
         </div>
-    </div>
-    
-    <!-- Metrics Tab -->
-    <div id="content-metrics" class="tab-content hidden">
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-xl font-bold mb-4">📈 Chi tiết Metrics</h2>
-            
-            <!-- Metrics Table -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Metric</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giá trị</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Target</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mô tả</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for metric in model.metrics %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ metric.name }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {% if metric.value is not none %}
-                                <span class="font-semibold">{{ "%.4f"|format(metric.value) }}{{ metric.unit }}</span>
-                                {% else %}
-                                <span class="text-gray-400">N/A</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {% if metric.target %}
-                                < {{ metric.target }}{{ metric.unit }}
-                                {% else %}
-                                <span class="text-gray-400">N/A</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">{{ metric.description or "-" }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    </section>
+
+    <section id="content-metrics" class="tab-panel hidden">
+        {% if model.metrics %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for metric in model.metrics %}
+            <div class="summary-card bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
+                <p class="text-xs uppercase tracking-[0.4em] opacity-80">{{ metric.name }}</p>
+                <p class="text-4xl font-bold mt-3">
+                    {% if metric.value is not none %}
+                        {{ "%.4f"|format(metric.value) }}{{ metric.unit or "" }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+                <p class="text-sm mt-2 opacity-80">
+                    {% if metric.target %}Mục tiêu: {{ metric.target }}{{ metric.unit or "" }}{% else %}Chưa có mục tiêu{% endif %}
+                </p>
+                <p class="text-xs mt-2">{{ metric.description or "Metric theo dõi chất lượng mô hình." }}</p>
             </div>
+            {% endfor %}
         </div>
-        
-        <!-- Charts Section -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold mb-4">📊 Biểu đồ Đánh giá</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {% for chart_type in model.chart_types %}
-                <div class="border border-gray-200 rounded-lg p-4">
-                    <h3 class="font-semibold mb-2">{{ chart_type|replace("_", " ")|title }}</h3>
-                    <div class="chart-container">
-                        <canvas id="chart-{{ chart_type }}"></canvas>
-                    </div>
-                    <p class="text-sm text-gray-500 mt-2">Chart sẽ được load từ results/ hoặc API</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    
-    <!-- Predict Tab -->
+        {% else %}
+        <p class="text-center text-slate-500 py-10">Chưa có thông tin đánh giá cho mô hình này.</p>
+        {% endif %}
+    </section>
+
     {% if model.api_endpoint %}
-    <div id="content-predict" class="tab-content hidden">
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-xl font-bold mb-4">🎯 Thử Dự Đoán</h2>
-            <p class="text-gray-600 mb-6">Nhập thông tin để thử dự đoán với mô hình này.</p>
-            
-            <!-- Prediction Form -->
-            <form id="prediction-form" class="form-section">
+    <section id="content-predict" class="tab-panel hidden">
+        <div class="bg-white rounded-2xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-slate-900 mb-2">Thử dự đoán</h2>
+            <p class="text-slate-600 text-sm mb-6">
+                Nhập bộ dữ liệu phù hợp hoặc sử dụng payload mẫu để kiểm tra nhanh. Hệ thống sẽ gọi API <code>{{ model.api_endpoint }}</code>.
+            </p>
+            <form id="prediction-form" class="form-section space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {% for field in form_fields %}
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ field.label }}
-                            {% if field.required %}<span class="text-red-500">*</span>{% endif %}
-                        </label>
+                        <div class="flex items-center justify-between text-sm font-semibold text-slate-700 mb-1">
+                            <span>{{ field.label }}{% if field.required %}<span class="text-rose-500">*</span>{% endif %}</span>
+                            {% if field.description %}
+                            <span class="field-help-icon" title="{{ field.description }}"><i class="fa-solid fa-circle-info"></i></span>
+                            {% endif %}
+                        </div>
                         {% if field.type == "select" %}
-                        <select name="{{ field.name }}" 
-                                class="w-full border border-gray-300 rounded-md px-3 py-2"
-                                {% if field.required %}required{% endif %}>
+                        <select name="{{ field.name }}" class="w-full border border-slate-200 rounded-lg px-3 py-2" {% if field.required %}required{% endif %}>
                             {% for option in field.options %}
                             <option value="{{ option }}" {% if option == field.default|string %}selected{% endif %}>{{ option }}</option>
                             {% endfor %}
                         </select>
                         {% elif field.type == "number" %}
-                        <input type="number" name="{{ field.name }}" 
-                               value="{{ field.default }}" 
-                               step="0.01"
-                               class="w-full border border-gray-300 rounded-md px-3 py-2"
+                        <input type="number" name="{{ field.name }}" class="w-full border border-slate-200 rounded-lg px-3 py-2"
+                               value="{{ field.default if field.default is not none else '' }}"
+                               {% if field.min_value is not none %}min="{{ field.min_value }}"{% endif %}
+                               {% if field.max_value is not none %}max="{{ field.max_value }}"{% endif %}
+                               {% if field.step is not none %}step="{{ field.step }}"{% endif %}
+                               {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
                                {% if field.required %}required{% endif %}>
                         {% else %}
-                        <input type="{{ field.type }}" name="{{ field.name }}" 
-                               value="{{ field.default }}" 
-                               class="w-full border border-gray-300 rounded-md px-3 py-2"
+                        <input type="{{ field.type }}" name="{{ field.name }}" class="w-full border border-slate-200 rounded-lg px-3 py-2"
+                               value="{{ field.default if field.default is not none else '' }}"
+                               {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
                                {% if field.required %}required{% endif %}>
                         {% endif %}
-                        {% if field.description %}
-                        <p class="text-xs text-gray-500 mt-1">{{ field.description }}</p>
+                        {% if field.unit %}
+                        <p class="text-xs text-slate-500 mt-1">Đơn vị: {{ field.unit }}</p>
                         {% endif %}
                     </div>
                     {% endfor %}
                 </div>
-                
-                <div class="mt-6">
-                    <button type="submit" 
-                            class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold">
-                        🔮 Dự Đoán
-                    </button>
-                    <button type="button" onclick="resetForm()" 
-                            class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 font-semibold ml-2">
-                        Đặt lại
-                    </button>
+
+                {% if model.sample_payload %}
+                <div class="bg-white border border-slate-200 rounded-xl p-4">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800 uppercase tracking-wide">Payload mẫu</p>
+                            <p class="text-xs text-slate-500">Nhấn “Điền mẫu” để tự động lấp form hoặc tải JSON/CSV để automation test.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-600" onclick="loadSamplePayload()">Điền mẫu</button>
+                            <button type="button" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-800" onclick="downloadSamplePayload('json')">Tải JSON</button>
+                            <button type="button" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-200" onclick="downloadSamplePayload('csv')">Tải CSV</button>
+                        </div>
+                    </div>
+                    <pre class="sample-payload mt-3" id="sample-payload">{{ model.sample_payload | tojson(indent=2) }}</pre>
+                </div>
+                {% endif %}
+
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700">Thực hiện dự đoán</button>
+                    <button type="button" onclick="resetForm()" class="bg-slate-200 text-slate-700 px-6 py-3 rounded-xl font-semibold hover:bg-slate-300">Đặt lại</button>
                 </div>
             </form>
-            
-            <!-- Prediction Result -->
             <div id="prediction-result" class="hidden"></div>
+            <div id="prediction-insight" class="hidden mt-4"></div>
         </div>
-    </div>
+    </section>
     {% endif %}
-    
-    <!-- Explain Tab -->
-    <div id="content-explain" class="tab-content hidden">
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold mb-4">💡 Giải thích Mô hình</h2>
-            
-            <div class="prose max-w-none">
-                <h3>Mục đích</h3>
-                <p>{{ model.description }}</p>
-                
-                <h3>Cách sử dụng kết quả</h3>
-                <p>Kết quả từ mô hình này có thể được sử dụng để:</p>
-                <ul>
-                    {% if model.type.value == "classification" %}
-                    <li>Phân loại và đưa ra quyết định dựa trên xác suất dự đoán</li>
-                    <li>Ưu tiên xử lý các trường hợp có xác suất cao</li>
-                    {% elif model.type.value == "regression" %}
-                    <li>Lập kế hoạch dựa trên dự báo</li>
-                    <li>Tối ưu hóa inventory và resources</li>
-                    {% elif model.type.value == "simulation" %}
-                    <li>Phân tích scenarios và what-if analysis</li>
-                    <li>Đánh giá rủi ro và lập kế hoạch</li>
-                    {% endif %}
-                </ul>
-                
-                <h3>Feature quan trọng</h3>
-                <p>Mô hình này sử dụng các features quan trọng sau:</p>
-                <ul>
-                    {% for field in form_fields[:5] %}
-                    <li><strong>{{ field.label }}:</strong> {{ field.description or "Feature quan trọng" }}</li>
-                    {% endfor %}
-                </ul>
-                
-                <h3>Limitations</h3>
-                <ul>
-                    <li>Model được train trên historical data, có thể không chính xác với data mới</li>
-                    <li>Performance có thể giảm theo thời gian do data drift</li>
-                    <li>Cần retrain định kỳ (khuyến nghị: weekly hoặc monthly)</li>
-                </ul>
-                
-                {% if model.docs_path %}
-                <p class="mt-4">
-                    <a href="/{{ model.docs_path }}" target="_blank" 
-                       class="text-blue-600 hover:underline">
-                        📖 Xem documentation chi tiết
-                    </a>
-                </p>
-                {% endif %}
-            </div>
+
+    <section id="content-explain" class="tab-panel hidden">
+        <div class="explain-card" id="explanation-panel">
+            <h3 class="text-lg font-semibold mb-2">Giải thích chi tiết</h3>
+            <p class="text-sm">Nhập dữ liệu ở tab “Thử dự đoán” để xem diễn giải cụ thể cho {{ model.display_name }}.</p>
         </div>
-    </div>
+    </section>
 </div>
 {% endblock %}
 
@@ -354,122 +213,366 @@
 const MODEL_ID = "{{ model.id }}";
 const API_ENDPOINT = "{{ model.api_endpoint }}";
 const MODEL_TYPE = "{{ model.type.value }}";
+const SAMPLE_PAYLOAD = {% if model.sample_payload %}{{ model.sample_payload | tojson | safe }}{% else %}null{% endif %};
 
-// Tab switching
+const MODEL_EXPLANATIONS = {
+    late_delivery: {
+        purpose: "Dự báo xác suất đơn hàng giao trễ để ưu tiên xử lý.",
+        inputs: [
+            {name: "shipping_duration_scheduled", type: "Số nguyên ≥1", range: "1-120 ngày", meaning: "Thời gian giao dự kiến", example: "5"},
+            {name: "temperature", type: "Số thực (°C)", range: "-30 đến 55", meaning: "Nhiệt độ trung bình", example: "27.5"},
+            {name: "weather_risk_level", type: "1-5", range: "1=thấp, 5=cao", meaning: "Chỉ số rủi ro thời tiết", example: "2"}
+        ],
+        outputs: [
+            {name: "late_risk_prob", meaning: "Xác suất giao trễ (0-1). >0.7 = nguy cơ cao."},
+            {name: "late_risk_label", meaning: "0=an toàn, 1=rủi ro cần can thiệp."}
+        ],
+        usage: "Team vận hành và logistics dùng để ưu tiên shipment, phối hợp kho và nhà vận chuyển.",
+        example: "Nếu xác suất = 0.82 → tăng buffer thời gian hoặc đổi tuyến vận chuyển."
+    },
+    revenue_forecast: {
+        purpose: "Dự báo doanh thu/nhu cầu cho từng khu vực.",
+        inputs: [
+            {name: "forecast_date", type: "Ngày (YYYY-MM-DD)", range: "Ngày hợp lệ", meaning: "Thời điểm dự báo", example: "2025-05-01"},
+            {name: "revenue_lag_7d", type: "Số thực", range: "≥0", meaning: "Doanh thu 7 ngày trước", example: "52000"},
+            {name: "temperature", type: "°C", range: "-30 đến 55", meaning: "Nhiệt độ trung bình", example: "30"}
+        ],
+        outputs: [
+            {name: "forecasted_revenue", meaning: "Doanh thu/nhu cầu kỳ vọng cho kỳ tới."},
+            {name: "confidence_range", meaning: "Khoảng tin cậy để lên kế hoạch tồn kho."}
+        ],
+        usage: "Kế hoạch cung ứng, mua hàng, tài chính.",
+        example: "Nếu nhu cầu > tồn kho hiện tại → cần đặt hàng bổ sung."
+    },
+    inventory_rl: {
+        purpose: "Đề xuất tồn kho an toàn theo vùng bằng RL.",
+        inputs: [
+            {name: "weather_risk_index", type: "0-1", range: "0 (thấp) - 1 (cao)", meaning: "Mức rủi ro thời tiết", example: "0.18"},
+            {name: "region_congestion_index", type: "0-5", range: "0-5", meaning: "Mức nghẽn vùng", example: "2.3"},
+            {name: "Sales", type: "Số lượng", range: "≥0", meaning: "Doanh số hiện tại", example: "125"}
+        ],
+        outputs: [
+            {name: "recommended_qty_buffer", meaning: "Mức tồn kho an toàn nên bổ sung."}
+        ],
+        usage: "Kho vận & Demand planning dùng để điều chỉnh buffer.",
+        example: "Buffer = 7.2 → tăng tồn kho an toàn thêm 7 đơn vị."
+    },
+    pricing_elasticity: {
+        purpose: "Ước lượng độ nhạy cầu theo giá và thời tiết.",
+        inputs: [
+            {name: "price", type: "USD", range: "≥0", meaning: "Mức giá đề xuất", example: "49"},
+            {name: "weather_risk_index", type: "0-1", range: "0-1", meaning: "Ảnh hưởng thời tiết", example: "0.2"}
+        ],
+        outputs: [
+            {name: "expected_quantity", meaning: "Sản lượng dự kiến tương ứng mức giá."},
+            {name: "quantity_log", meaning: "Giá trị log dùng để phân tích nội bộ."}
+        ],
+        usage: "Bộ phận pricing và revenue management.",
+        example: "Kết quả < baseline → cân nhắc giảm giá hoặc chạy promotion."
+    },
+    customer_churn: {
+        purpose: "Xác định khách hàng có nguy cơ rời bỏ.",
+        inputs: [
+            {name: "customer_id", type: "Chuỗi", range: "Mã khách hợp lệ", meaning: "Định danh khách", example: "C123456"},
+            {name: "rfm_recency", type: "Ngày", range: "≥0", meaning: "Số ngày từ lần mua cuối", example: "30"}
+        ],
+        outputs: [
+            {name: "churn_prob", meaning: "Xác suất churn 0-1."},
+            {name: "churn_label", meaning: "0=ở lại, 1=rời bỏ."}
+        ],
+        usage: "CRM, marketing retention.",
+        example: "Prob = 0.75 → đưa vào chiến dịch giữ chân đặc biệt."
+    },
+    drift_detection: {
+        purpose: "Theo dõi drift dữ liệu để quyết định retrain.",
+        inputs: [
+            {name: "Late_delivery_risk", type: "Số thực", range: "0-1", meaning: "Rủi ro giao trễ tổng hợp", example: "0.18"},
+            {name: "weather_risk_index", type: "Số thực", range: "0-1", meaning: "Chỉ số rủi ro thời tiết", example: "0.2"},
+            {name: "temp_mean_7d", type: "Số thực (°C)", range: "-30 đến 55", meaning: "Nhiệt độ trung bình 7 ngày", example: "29.5"}
+        ],
+        outputs: [
+            {name: "drift_score", meaning: "Độ lệch tối đa giữa các cột."},
+            {name: "status", meaning: "stable/warning/critical theo ngưỡng drift."},
+            {name: "by_feature", meaning: "Drift score cho từng cột."}
+        ],
+        usage: "MLOps, Monitoring.",
+        example: "Drift score 0.12 → kích hoạt retrain Late Delivery."
+    },
+    digital_twin: {
+        purpose: "Mô phỏng trạng thái supply chain dưới các kịch bản.",
+        inputs: [
+            {name: "duration_days", type: "Số nguyên", range: "1-180", meaning: "Thời gian mô phỏng", example: "30"},
+            {name: "scenario", type: "Text", range: "normal/demand_surge/…", meaning: "Kịch bản mô phỏng", example: "normal"}
+        ],
+        outputs: [
+            {name: "scenario_summary", meaning: "Danh sách baseline/optimistic/worst-case."},
+            {name: "key_metrics", meaning: "Disruption index, supply-demand gap, chi phí."}
+        ],
+        usage: "Chiến lược vận hành, đánh giá rủi ro.",
+        example: "Worst-case risk 0.45 → tăng tồn kho và thuê thêm slot vận chuyển."
+    },
+    strategy_engine: {
+        purpose: "Tổng hợp nhiều mô hình để đề xuất chiến lược.",
+        inputs: [
+            {name: "inventory", type: "Số thực", range: "≥0", meaning: "Tồn kho hiện tại", example: "12000"},
+            {name: "demand_outlook", type: "Text", range: "neutral/surge/slow", meaning: "Xu hướng nhu cầu", example: "surge"}
+        ],
+        outputs: [
+            {name: "strategies", meaning: "Danh sách chiến lược với confidence/risk."},
+            {name: "recommendation", meaning: "Kết luận hành động nên làm."}
+        ],
+        usage: "Ban chiến lược, lãnh đạo chuỗi cung ứng.",
+        example: "Strategy “Tăng tồn kho EU” confidence 0.74 → triển khai ngay."
+    }
+};
+
 function showTab(tabName) {
-    // Hide all tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.add('hidden');
-    });
-    
-    // Remove active class from all buttons
+    document.querySelectorAll('.tab-panel').forEach(tab => tab.classList.add('hidden'));
     document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('border-blue-600', 'text-blue-600');
-        btn.classList.add('border-transparent', 'text-gray-500');
+        btn.classList.remove('border-blue-600','text-blue-600');
+        btn.classList.add('border-transparent','text-slate-500');
     });
-    
-    // Show selected tab
     document.getElementById(`content-${tabName}`).classList.remove('hidden');
-    
-    // Add active class to button
-    const btn = document.getElementById(`tab-${tabName}`);
-    btn.classList.remove('border-transparent', 'text-gray-500');
-    btn.classList.add('border-blue-600', 'text-blue-600');
+    document.getElementById(`tab-${tabName}`).classList.remove('border-transparent','text-slate-500');
+    document.getElementById(`tab-${tabName}`).classList.add('border-blue-600','text-blue-600');
+    if (tabName === 'explain') {
+        renderExplanationTab();
+    }
 }
 
-// Prediction form
 document.getElementById('prediction-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
     const formData = new FormData(e.target);
     const payload = {};
     formData.forEach((value, key) => {
-        // Convert to number if possible
-        if (!isNaN(value) && value !== '') {
-            payload[key] = parseFloat(value);
-        } else {
-            payload[key] = value;
-        }
+        if (value === undefined || value === null) { return; }
+        const normalized = typeof value === 'string' ? value.trim() : value;
+        if (normalized === '') { return; }
+        payload[key] = isNaN(normalized) ? normalized : parseFloat(normalized);
     });
-    
-    // Show loading
+
     const resultDiv = document.getElementById('prediction-result');
+    const insightDiv = document.getElementById('prediction-insight');
     resultDiv.classList.remove('hidden');
-    resultDiv.innerHTML = '<div class="prediction-result"><p>Đang xử lý...</p></div>';
-    
+    resultDiv.innerHTML = '<div class="prediction-box">Đang xử lý...</div>';
+    insightDiv.classList.add('hidden');
+
     try {
         const response = await fetch(API_ENDPOINT, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         });
-        
         const data = await response.json();
-        
-        if (data.status === 'success') {
-            displayPredictionResult(data.prediction);
-        } else {
-            throw new Error(data.message || 'Prediction failed');
+        if (data.status === 'invalid_input') {
+            resultDiv.innerHTML = `<div class="bg-amber-100 border border-amber-300 text-amber-800 px-4 py-3 rounded-lg">${data.message}</div>`;
+            insightDiv.innerHTML = '';
+            insightDiv.classList.add('hidden');
+            updateExplanationPanel(null, data.message);
+            return;
         }
+        if (response.status !== 200 || data.status !== 'success') {
+            throw new Error(data.detail || data.message || 'Prediction failed');
+        }
+        displayPredictionResult(data.prediction);
     } catch (error) {
-        resultDiv.innerHTML = `
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                <p><strong>Lỗi:</strong> ${error.message}</p>
-            </div>
-        `;
+        resultDiv.innerHTML = `<div class="bg-rose-100 border border-rose-300 text-rose-800 px-4 py-3 rounded-lg">Lỗi: ${error.message}</div>`;
+        insightDiv.innerHTML = '';
+        insightDiv.classList.add('hidden');
+        updateExplanationPanel(null, error.message);
     }
 });
 
-// Display prediction result
 function displayPredictionResult(prediction) {
     const resultDiv = document.getElementById('prediction-result');
-    
-    let html = '<div class="prediction-result">';
-    html += '<h3 class="text-xl font-bold mb-4">Kết quả Dự đoán</h3>';
-    
-    if (MODEL_TYPE === 'classification') {
-        const prob = prediction.late_risk_prob !== undefined ? prediction.late_risk_prob : prediction.churn_prob;
-        const label = prediction.late_risk_label !== undefined ? prediction.late_risk_label : prediction.churn_label;
-        
-        html += `<div class="mb-4">
-            <div class="text-3xl font-bold mb-2">${(prob * 100).toFixed(2)}%</div>
-            <div class="text-sm opacity-90">Xác suất: ${label === 1 ? 'Có' : 'Không'}</div>
-        </div>`;
-        
-        if (prediction.top_features) {
-            html += '<div class="mt-4"><h4 class="font-semibold mb-2">Top Features:</h4><ul>';
-            prediction.top_features.forEach(f => {
-                html += `<li>${f.feature}: ${(f.importance * 100).toFixed(2)}%</li>`;
-            });
-            html += '</ul></div>';
-        }
+    const insightDiv = document.getElementById('prediction-insight');
+    let headline = '';
+    let subtext = '';
+    let recommendations = '';
+
+    if (MODEL_ID === 'drift_detection') {
+        const score = (prediction.drift_score ?? 0);
+        headline = `${(score * 100).toFixed(1)}%`;
+        subtext = `Trạng thái: ${prediction.drift_flag || 'stable'}`;
+        recommendations = prediction.recommendation || '';
+    } else if (MODEL_ID === 'digital_twin') {
+        const summary = prediction.scenario_summary?.[0] || {};
+        headline = `${((summary.fulfillment_rate ?? 0) * 100).toFixed(1)}%`;
+        subtext = `Kịch bản: ${summary.scenario || 'baseline'}`;
+        recommendations = prediction.recommendation || '';
+    } else if (MODEL_ID === 'strategy_engine') {
+        const topStrategy = Array.isArray(prediction.strategies) ? prediction.strategies[0] : null;
+        headline = topStrategy ? topStrategy.name : 'Chiến lược';
+        subtext = topStrategy ? `Confidence: ${(topStrategy.confidence * 100).toFixed(1)}%` : '';
+        recommendations = prediction.recommendation || '';
+    } else if (MODEL_TYPE === 'classification') {
+        const prob = (prediction.late_risk_prob ?? prediction.churn_prob ?? 0) * 100;
+        const label = prediction.late_risk_label ?? prediction.churn_label ?? 0;
+        headline = `${prob.toFixed(2)}%`;
+        subtext = label ? 'Rủi ro cao' : 'Rủi ro thấp';
+        recommendations = prob >= 50 ? 'Ưu tiên điều phối/giữ chân.' : 'Tiếp tục xử lý theo quy trình chuẩn.';
     } else if (MODEL_TYPE === 'regression') {
-        html += `<div class="mb-4">
-            <div class="text-3xl font-bold mb-2">$${prediction.forecasted_revenue?.toLocaleString() || 'N/A'}</div>
-            <div class="text-sm opacity-90">Dự báo doanh thu</div>
-        </div>`;
-        
-        if (prediction.confidence_range) {
-            html += `<div class="mt-4">
-                <h4 class="font-semibold mb-2">Khoảng tin cậy:</h4>
-                <p>Lower: $${prediction.confidence_range.lower?.toLocaleString()}</p>
-                <p>Upper: $${prediction.confidence_range.upper?.toLocaleString()}</p>
-            </div>`;
-        }
+        const value = prediction.forecasted_revenue ?? prediction.expected_quantity ?? prediction.quantity_log ?? 0;
+        headline = value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        subtext = prediction.forecasted_revenue ? 'Giá trị dự báo' : 'Số lượng kỳ vọng';
+        recommendations = 'Dùng kết quả để cân đối kế hoạch cung ứng.';
+    } else if (MODEL_TYPE === 'reinforcement_learning') {
+        headline = (prediction.recommended_qty_buffer ?? 0).toFixed(2);
+        subtext = 'Mức buffer đề xuất';
+        recommendations = headline > 5 ? 'Kho nên tăng tồn kho an toàn.' : 'Tồn kho hiện tại đang ổn.';
+    } else {
+        headline = JSON.stringify(prediction);
+        subtext = 'Kết quả mô phỏng';
     }
-    
-    html += '</div>';
-    resultDiv.innerHTML = html;
+
+    const parameterDetails = buildParameterDetails(prediction);
+    const featuresHtml = buildFeatureList(prediction);
+
+    resultDiv.innerHTML = `
+        <div class="prediction-box">
+            <p class="text-sm uppercase tracking-[0.4em] opacity-80">Kết quả dự đoán</p>
+            <p class="text-4xl font-bold mt-2">${headline}</p>
+            <p class="text-sm mt-1">${subtext}</p>
+            <p class="text-sm mt-3">${MODEL_EXPLANATIONS[MODEL_ID]?.purpose || ''}</p>
+            ${recommendations ? `<p class="text-sm font-semibold mt-1">${recommendations}</p>` : ''}
+            ${featuresHtml}
+        </div>
+    `;
+
+    insightDiv.innerHTML = parameterDetails;
+    if (parameterDetails) {
+        insightDiv.classList.remove('hidden');
+    } else {
+        insightDiv.classList.add('hidden');
+    }
+
+    updateExplanationPanel(prediction, null);
 }
 
-// Reset form
+function buildFeatureList(prediction) {
+    if (!prediction.top_features && !prediction.scenario_summary && !prediction.strategies) {
+        return '';
+    }
+    if (prediction.top_features) {
+        let html = '<div class="mt-3 text-sm"><p class="font-semibold">Top features</p><ul class="list-disc pl-5 space-y-1">';
+        prediction.top_features.forEach(f => {
+            html += `<li>${f.feature}: ${(f.importance * 100).toFixed(2)}%</li>`;
+        });
+        html += '</ul></div>';
+        return html;
+    }
+    if (prediction.scenario_summary) {
+        let html = '<div class="mt-3 text-sm"><p class="font-semibold">Scenario summary</p><table class="table-simple mt-2"><thead><tr><th>Kịch bản</th><th>Fulfillment</th><th>Rủi ro</th><th>Chi phí</th><th>Giải thích</th></tr></thead><tbody>';
+        prediction.scenario_summary.forEach(row => {
+            html += `<tr><td>${row.scenario}</td><td>${(row.fulfillment_rate * 100).toFixed(1)}%</td><td>${row.risk_score ?? '-'}</td><td>${row.cost_impact ?? '-'}</td><td>${row.explanation || ''}</td></tr>`;
+        });
+        html += '</tbody></table></div>';
+        return html;
+    }
+    if (prediction.strategies) {
+        let html = '<div class="mt-3 text-sm"><p class="font-semibold">Chiến lược đề xuất</p><table class="table-simple mt-2"><thead><tr><th>Tên</th><th>Focus</th><th>Confidence</th><th>Risk</th><th>Reward</th></tr></thead><tbody>';
+        prediction.strategies.forEach(row => {
+            html += `<tr><td>${row.name}</td><td>${row.focus}</td><td>${(row.confidence * 100).toFixed(1)}%</td><td>${row.risk_score}</td><td>${row.expected_reward}</td></tr>`;
+        });
+        html += '</tbody></table></div>';
+        return html;
+    }
+    return '';
+}
+
+function buildParameterDetails(prediction) {
+    const meta = MODEL_EXPLANATIONS[MODEL_ID];
+    if (!meta || !meta.outputs) {
+        return '';
+    }
+    const rows = meta.outputs.map(output => {
+        const key = output.name;
+        if (prediction[key] === undefined || typeof prediction[key] === "object") {
+            return '';
+        }
+        const value = typeof prediction[key] === "number"
+            ? prediction[key].toLocaleString(undefined, { maximumFractionDigits: 3 })
+            : prediction[key];
+        return `<li><strong>${key}</strong>: ${value} – ${output.meaning}</li>`;
+    }).filter(Boolean);
+    if (!rows.length) {
+        return '';
+    }
+    return `<div class="bg-white rounded-xl shadow p-4"><p class="font-semibold mb-2">Giải thích tham số</p><ul class="list-disc pl-5 space-y-1">${rows.join('')}</ul></div>`;
+}
+
 function resetForm() {
     document.getElementById('prediction-form').reset();
     document.getElementById('prediction-result').classList.add('hidden');
+    document.getElementById('prediction-insight').classList.add('hidden');
+    updateExplanationPanel(null, null);
 }
 
-// Initialize
+function loadSamplePayload() {
+    if (!SAMPLE_PAYLOAD) { alert('Chưa có payload mẫu.'); return; }
+    const form = document.getElementById('prediction-form');
+    Object.entries(SAMPLE_PAYLOAD).forEach(([key, value]) => {
+        const field = form.querySelector(`[name="${key}"]`);
+        if (field) field.value = value;
+    });
+}
+
+function downloadSamplePayload(format) {
+    if (!SAMPLE_PAYLOAD) { alert('Chưa có payload mẫu.'); return; }
+    let content = '';
+    let filename = `${MODEL_ID}_sample.${format}`;
+    let mime = 'application/json';
+    if (format === 'json') {
+        content = JSON.stringify(SAMPLE_PAYLOAD, null, 2);
+    } else {
+        const headers = Object.keys(SAMPLE_PAYLOAD);
+        const values = headers.map(key => SAMPLE_PAYLOAD[key]);
+        content = `${headers.join(',')}\n${values.join(',')}`;
+        mime = 'text/csv';
+    }
+    const blob = new Blob([content], {type: `${mime};charset=utf-8`});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+function updateExplanationPanel(prediction, errorMessage) {
+    const panel = document.getElementById('explanation-panel');
+    if (errorMessage) {
+        panel.innerHTML = `<h3 class="text-lg font-semibold mb-2">Không thể hiển thị</h3><p>${errorMessage}</p>`;
+        return;
+    }
+    const meta = MODEL_EXPLANATIONS[MODEL_ID];
+    if (!meta) {
+        panel.innerHTML = '<p>Chưa có dữ liệu giải thích.</p>';
+        return;
+    }
+    let html = `
+        <h3 class="text-lg font-semibold mb-2">${meta.purpose}</h3>
+        <p class="text-sm mb-4">${meta.usage || ''}</p>
+        <h4 class="font-semibold mb-1">Tham số đầu vào</h4>
+        <table class="table-simple mb-4">
+            <thead><tr><th>Tên</th><th>Kiểu</th><th>Miền giá trị</th><th>Ý nghĩa</th><th>Ví dụ</th></tr></thead>
+            <tbody>
+                ${meta.inputs.map(input => `<tr><td>${input.name}</td><td>${input.type}</td><td>${input.range}</td><td>${input.meaning}</td><td>${input.example ?? '-'}</td></tr>`).join('')}
+            </tbody>
+        </table>
+        <h4 class="font-semibold mb-1">Tham số đầu ra</h4>
+        <ul class="list-disc pl-5 space-y-1 mb-4">${meta.outputs.map(output => `<li><strong>${output.name}</strong>: ${output.meaning}</li>`).join('')}</ul>
+        <p class="text-sm">${meta.example || ''}</p>
+    `;
+    panel.innerHTML = html;
+}
+
+function renderExplanationTab() {
+    updateExplanationPanel(null, null);
+}
+
 showTab('overview');
 </script>
 {% endblock %}
-

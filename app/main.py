@@ -20,6 +20,8 @@ from app.routers import (
     ai_dashboard,
     models_registry,
     models_metrics,
+    ai_models_api,
+    ai_strategy_api,
 )
 
 # Khởi tạo FastAPI app
@@ -44,6 +46,8 @@ app.include_router(ai_dashboard.router, prefix="/dashboard", tags=["ai-dashboard
 app.include_router(models_registry.router, tags=["model-registry"])
 app.include_router(models_metrics.router, tags=["model-metrics"])
 app.include_router(ml_api.router, prefix="/ml", tags=["ml"])
+app.include_router(ai_models_api.router, tags=["ai-models"])
+app.include_router(ai_strategy_api.router, prefix="/ai/strategy", tags=["strategy"])
 
 # V6 + V7 routers
 app.include_router(self_learning_api.router, prefix="/v6", tags=["v6-self-learning"])

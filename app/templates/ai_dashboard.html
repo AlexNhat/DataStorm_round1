@@ -1,215 +1,199 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
-{% block title %}AI Models Overview - Supply Chain AI{% endblock %}
+{% block title %}Trung tâm Mô hình AI - Supply Chain AI{% endblock %}
 
 {% block extra_head %}
 <style>
     .model-card {
-        transition: all 0.3s;
-        border-left: 4px solid #3b82f6;
+        border-radius: 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        padding: 1.25rem;
+        transition: transform .2s ease, box-shadow .2s ease;
+        background: white;
     }
     .model-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 18px 35px rgba(15, 23, 42, 0.15);
     }
-    .model-card.classification { border-left-color: #10b981; }
-    .model-card.regression { border-left-color: #f59e0b; }
-    .model-card.reinforcement_learning { border-left-color: #8b5cf6; }
-    .model-card.simulation { border-left-color: #ef4444; }
-    .model-card.cognitive { border-left-color: #06b6d4; }
-    .model-card.online_learning { border-left-color: #6366f1; }
-    
-    .metric-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-    .metric-good { background-color: #d1fae5; color: #065f46; }
-    .metric-warning { background-color: #fef3c7; color: #92400e; }
-    .metric-poor { background-color: #fee2e2; color: #991b1b; }
-    
-    .status-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
+    .model-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.2rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
         font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .08em;
     }
-    .status-deployed { background-color: #d1fae5; color: #065f46; }
-    .status-analytics { background-color: #dbeafe; color: #1e40af; }
-    .status-development { background-color: #fef3c7; color: #92400e; }
-    .status-not_trained { background-color: #fee2e2; color: #991b1b; }
+    .metric-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 0.55rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background-color: #f1f5f9;
+        color: #0f172a;
+    }
+    .status-deployed { background: #dcfce7; color: #166534; }
+    .status-analytics { background: #dbeafe; color: #1d4ed8; }
+    .status-development { background: #fef3c7; color: #92400e; }
+    .status-not_trained { background: #fee2e2; color: #b91c1c; }
+    .filter-btn {
+        border-radius: 0.75rem;
+        padding: 0.45rem 1.1rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all .2s ease;
+    }
+    .filter-btn.active {
+        background: #2563eb;
+        color: #fff;
+        box-shadow: 0 12px 20px rgba(37, 99, 235, 0.25);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <div class="flex items-center justify-between">
+<div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         <div>
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">🤖 AI Models Overview</h1>
-            <p class="text-gray-600">Tổng quan tất cả các mô hình AI trong hệ thống</p>
+            <p class="text-xs uppercase tracking-[0.5em] text-slate-400">AI MODEL HUB</p>
+            <h1 class="text-3xl font-bold text-slate-900 mt-2">Danh sách mô hình AI</h1>
+            <p class="text-slate-600 mt-3">
+                Giám sát toàn bộ mô hình dự báo, tối ưu và giám sát drift của DataStorm.
+                Chọn một mô hình để xem chi tiết, thử dự đoán và đọc hướng dẫn sử dụng.
+            </p>
         </div>
-        <div class="text-right">
-            <div class="text-2xl font-bold text-blue-600">{{ total_models }}</div>
-            <div class="text-sm text-gray-500">Total Models</div>
-        </div>
-    </div>
-    
-    <!-- Statistics -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-        <div class="bg-green-50 p-4 rounded-lg">
-            <div class="text-sm text-gray-600">Deployed</div>
-            <div class="text-2xl font-bold text-green-600">{{ deployed_count }}</div>
-        </div>
-        <div class="bg-blue-50 p-4 rounded-lg">
-            <div class="text-sm text-gray-600">Analytics</div>
-            <div class="text-2xl font-bold text-blue-600">{{ analytics_count }}</div>
-        </div>
-        <div class="bg-yellow-50 p-4 rounded-lg">
-            <div class="text-sm text-gray-600">Development</div>
-            <div class="text-2xl font-bold text-yellow-600">{{ models_by_status.development|length }}</div>
-        </div>
-        <div class="bg-red-50 p-4 rounded-lg">
-            <div class="text-sm text-gray-600">Not Trained</div>
-            <div class="text-2xl font-bold text-red-600">{{ models_by_status.not_trained|length }}</div>
+        <div class="grid grid-cols-2 gap-4 w-full lg:w-auto">
+            <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-emerald-700 font-medium">Đang hoạt động</div>
+                <div class="text-3xl font-bold text-emerald-700">{{ deployed_count }}</div>
+            </div>
+            <div class="bg-indigo-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-indigo-700 font-medium">Chế độ phân tích</div>
+                <div class="text-3xl font-bold text-indigo-700">{{ analytics_count }}</div>
+            </div>
+            <div class="bg-amber-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-amber-700 font-medium">Đang phát triển</div>
+                <div class="text-3xl font-bold text-amber-700">{{ models_by_status.development|length }}</div>
+            </div>
+            <div class="bg-rose-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-rose-700 font-medium">Chưa train</div>
+                <div class="text-3xl font-bold text-rose-700">{{ models_by_status.not_trained|length }}</div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Filters -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <h2 class="text-xl font-bold mb-4">🔍 Lọc Models</h2>
-    <div class="flex flex-wrap gap-4">
-        <button onclick="filterModels('all')" class="filter-btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-            Tất cả
-        </button>
-        <button onclick="filterModels('classification')" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
-            Classification
-        </button>
-        <button onclick="filterModels('regression')" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
-            Regression
-        </button>
-        <button onclick="filterModels('simulation')" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
-            Simulation
-        </button>
-        <button onclick="filterModels('cognitive')" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
-            Cognitive
-        </button>
+<div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+    <h2 class="text-xl font-bold text-slate-900 mb-3">Bộ lọc nhanh</h2>
+    <div class="flex flex-wrap gap-3">
+        <button class="filter-btn active" onclick="filterModels('all', event)">Tất cả</button>
+        <button class="filter-btn" onclick="filterModels('classification', event)">Classification</button>
+        <button class="filter-btn" onclick="filterModels('regression', event)">Regression</button>
+        <button class="filter-btn" onclick="filterModels('reinforcement_learning', event)">Reinforcement Learning</button>
+        <button class="filter-btn" onclick="filterModels('online_learning', event)">Monitoring</button>
     </div>
 </div>
 
-<!-- Models Grid -->
 <div id="models-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for model in all_models %}
-    <div class="model-card {{ model.type.value }} bg-white border border-gray-200 rounded-lg p-6" data-type="{{ model.type.value }}">
-        <!-- Header -->
-        <div class="flex items-start justify-between mb-4">
-            <div class="flex-1">
-                <h3 class="text-xl font-bold text-gray-800 mb-2">{{ model.display_name }}</h3>
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="status-badge status-{{ model.status.value }}">
-                        {% if model.status.value == 'deployed' %}✅ Deployed
-                        {% elif model.status.value == 'analytics' %}📊 Analytics
-                        {% elif model.status.value == 'development' %}🚧 Development
-                        {% else %}⚠️ Not Trained{% endif %}
-                    </span>
-                    <span class="text-xs text-gray-500">{{ model.type.value }}</span>
+    <article class="model-card" data-type="{{ model.type.value }}">
+        <div class="flex justify-between gap-4">
+            <div>
+                <div class="model-pill bg-slate-900 text-white mb-2">
+                    {{ model.type.value.replace('_', ' ')|upper }}
                 </div>
+                <h3 class="text-2xl font-bold text-slate-900">{{ model.display_name }}</h3>
+                <p class="text-sm text-slate-500 mt-1">Phiên bản {{ model.version }}</p>
             </div>
-            {% if model_files_status[model.id] %}
-            <div class="text-green-600 text-2xl">✓</div>
-            {% else %}
-            <div class="text-gray-400 text-2xl">○</div>
-            {% endif %}
+            <div class="model-pill status-{{ model.status.value }}">
+                {% if model.status.value == 'deployed' %}Đang hoạt động{% elif model.status.value == 'analytics' %}Analytics{% elif model.status.value == 'development' %}Phát triển{% else %}Chưa train{% endif %}
+            </div>
         </div>
-        
-        <!-- Description -->
-        <p class="text-gray-600 text-sm mb-4">{{ model.description[:150] }}{% if model.description|length > 150 %}...{% endif %}</p>
-        
-        <!-- Metrics -->
-        <div class="mb-4">
-            <div class="text-sm font-semibold text-gray-700 mb-2">Metrics:</div>
-            <div class="flex flex-wrap gap-2">
-                {% for metric in model.metrics[:3] %}
-                <span class="metric-badge metric-good">
-                    {{ metric.name }}: {% if metric.target %}< {{ metric.target }}{{ metric.unit }}{% else %}N/A{% endif %}
+
+        <p class="text-slate-600 mt-4">
+            {{ model.description }}
+        </p>
+
+        {% if model.metrics %}
+        <div class="flex flex-wrap gap-2 mt-4">
+            {% for metric in model.metrics[:3] %}
+                <span class="metric-chip">
+                    {{ metric.name }}:
+                    {% if metric.target %}
+                        < {{ metric.target }}{{ metric.unit or "" }}
+                    {% elif metric.value is not none %}
+                        {{ "%.4f"|format(metric.value) }}{{ metric.unit or "" }}
+                    {% else %}
+                        N/A
+                    {% endif %}
                 </span>
-                {% endfor %}
-            </div>
+            {% endfor %}
         </div>
-        
-        <!-- Actions -->
-        <div class="flex gap-2">
-            <a href="/dashboard/ai/{{ model.id }}" 
-               class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-center text-sm">
+        {% endif %}
+
+        <div class="grid grid-cols-2 gap-3 mt-6">
+            <a href="/dashboard/ai/{{ model.id }}" class="text-center bg-blue-600 text-white py-2 rounded-xl font-semibold hover:bg-blue-700">
                 Chi tiết
             </a>
             {% if model.api_endpoint %}
-            <a href="/dashboard/ai/{{ model.id }}#predict" 
-               class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-center text-sm">
+            <a href="/dashboard/ai/{{ model.id }}#predict" class="text-center bg-emerald-500 text-white py-2 rounded-xl font-semibold hover:bg-emerald-600">
                 Thử dự đoán
+            </a>
+            {% else %}
+            <div class="text-center bg-slate-100 text-slate-400 py-2 rounded-xl font-semibold">
+                Chỉ theo dõi
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-500 mt-4 pt-4 border-t border-slate-100">
+            <span>Model file: {{ "Có" if model_files_status[model.id] else "Không" }}</span>
+            {% if model.docs_path %}
+            <a href="/{{ model.docs_path }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">
+                <i class="fa-regular fa-file-lines"></i> Tài liệu
             </a>
             {% endif %}
         </div>
-        
-        <!-- Links -->
-        <div class="mt-4 pt-4 border-t border-gray-200">
-            <div class="flex items-center justify-between text-xs text-gray-500">
-                <span>Version: {{ model.version }}</span>
-                {% if model.docs_path %}
-                <a href="/{{ model.docs_path }}" target="_blank" class="text-blue-600 hover:underline">
-                    📖 Docs
-                </a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+    </article>
     {% endfor %}
 </div>
 
-<!-- Empty State -->
-<div id="empty-state" class="hidden bg-white rounded-lg shadow-md p-12 text-center">
-    <div class="text-6xl mb-4">🔍</div>
-    <h3 class="text-2xl font-bold text-gray-800 mb-2">Không tìm thấy models</h3>
-    <p class="text-gray-600">Thử chọn bộ lọc khác</p>
+<div id="empty-state" class="hidden bg-white rounded-2xl shadow-lg p-12 text-center mt-6">
+    <div class="text-6xl mb-3">🤔</div>
+    <h3 class="text-2xl font-bold text-slate-900 mb-1">Không tìm thấy mô hình phù hợp</h3>
+    <p class="text-slate-600">Hãy đổi bộ lọc hoặc kiểm tra trạng thái train của mô hình.</p>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-// Filter models by type
-function filterModels(type) {
-    const models = document.querySelectorAll('.model-card');
-    const emptyState = document.getElementById('empty-state');
-    let visibleCount = 0;
-    
-    models.forEach(model => {
-        if (type === 'all' || model.dataset.type === type) {
-            model.classList.remove('hidden');
-            visibleCount++;
+function filterModels(type, evt) {
+    const cards = document.querySelectorAll('.model-card');
+    const empty = document.getElementById('empty-state');
+    let visible = 0;
+
+    cards.forEach(card => {
+        if (type === 'all' || card.dataset.type === type) {
+            card.classList.remove('hidden');
+            visible++;
         } else {
-            model.classList.add('hidden');
+            card.classList.add('hidden');
         }
     });
-    
-    // Update filter buttons
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('bg-gray-200', 'text-gray-700');
-    });
-    event.target.classList.remove('bg-gray-200', 'text-gray-700');
-    event.target.classList.add('bg-blue-600', 'text-white');
-    
-    // Show/hide empty state
-    if (visibleCount === 0) {
-        emptyState.classList.remove('hidden');
+
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    evt.target.classList.add('active');
+
+    if (visible === 0) {
+        empty.classList.remove('hidden');
     } else {
-        emptyState.classList.add('hidden');
+        empty.classList.add('hidden');
     }
 }
 </script>
 {% endblock %}
-
