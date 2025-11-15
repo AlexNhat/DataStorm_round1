@@ -1,33 +1,40 @@
 # DataStorm – Hệ thống AI cho Chuỗi Cung Ứng
 
-## 1. Giới thiệu ngắn
+## 1. Tổng quan
 
-- Hệ thống AI phân tích & dự đoán toàn bộ chuỗi cung ứng, từ kho vận tới nhu cầu.
-- Tích hợp đa mô hình ML/AI:
-  - Dự đoán giao hàng trễ
-  - Dự báo nhu cầu
-  - Phân tích churn
-  - Tối ưu tồn kho bằng Reinforcement Learning
-  - Mô phỏng đa tác nhân (multi-agent simulation)
-  - Digital Twin engine cho supply chain
-- Bao gồm Dashboard & OS Control Center phục vụ vận hành realtime.
+DataStorm là hệ thống AI Supply Chain toàn diện giúp dự báo nhu cầu, tối ưu tồn kho, giám sát rủi ro giao hàng và vận hành chiến lược thời gian thực. Kiến trúc kết hợp FastAPI, multi-agent reasoning, Digital Twin, reinforcement learning và các pipeline dữ liệu tự động, sẵn sàng để triển khai on-prem hoặc cloud.
 
-## 2. Tính năng nổi bật
+## 2. Bộ mô hình AI chủ lực
 
-- Dự báo chính xác 7–30 ngày cho nhu cầu & tồn kho.
-- Mô phỏng chuỗi cung ứng theo nhiều kịch bản (đứt gãy, mùa vụ, thiên tai).
-- Tự động tối ưu chiến lược tồn kho bằng RL và meta-learning.
-- Dashboard trực quan, đa biểu đồ, hỗ trợ drill-down và what-if.
-- Bộ test đầy đủ (unit, integration, UI, regression) đảm bảo chất lượng bản phát hành.
+- **Inventory Optimizer RL** – mô hình RL đa kịch bản giúp khuyến nghị buffer, phân bổ kho và tự động học theo tín hiệu thời tiết.
+- **Demand Forecast Ensemble** – tổ hợp XGBoost + Prophet + LSTM phục vụ dự báo 7–30 ngày, hỗ trợ granular theo khu vực.
+- **Late Delivery Classifier** – gradient boosting + weather enrichments để cảnh báo rủi ro đơn hàng trễ.
+- **Pricing Elasticity Regressor** – ước lượng hệ số co giãn để điều chỉnh giá theo bối cảnh thời tiết và nhu cầu.
+- **Churn & Revenue Models** – phục vụ phân khúc khách hàng, đánh giá CLV, cung cấp đầu vào cho chiến lược.
+- **Digital Twin & Multi-agent Simulation** – tái tạo supply chain và cho phép what-if analysis ngay trên Control Center.
 
-## 3. Yêu cầu hệ thống
+## 3. Logging & Model Registry Overhaul
+
+- **logs/warnings/** lưu toàn bộ cảnh báo chất lượng mô hình (RL, Forecast, Late Delivery, Pricing).  
+- **logs/inference/** ghi lại từng request/response cho mục đích audit, đồng thời đồng bộ với `results/metrics` để so khớp drift.  
+- **Model Registry (`app/services/model_registry.py`)** theo dõi: `status`, `version`, `api_endpoint`, `api_method`, `docs_path`, `chart_types`, `form_fields`, `dataset_info`, `last_trained`, `model_path` và `metrics`. Tất cả hiển thị trong Dashboard `/dashboard/models` và APIs `/dashboard/models/status`.  
+- **Registry-driven routing** bảo đảm mỗi mô hình đều có metadata, auto-link tới tài liệu và forms UI.
+
+## 4. Cognitive Dashboard & v8 UI
+
+- `/dashboard` cung cấp overview KPI + filter nâng cao; `/dashboard/models` để duyệt chi tiết từng mô hình.  
+- `/v8/dashboard` là Cognitive Dashboard thế hệ mới: hiển thị chiến lược đề xuất, mô phỏng multi-agent, scenario triggers.  
+- `/os/control-center` hiển thị hàng đợi hành động, trạng thái orchestration, approval flow cho self-healing actions.  
+- `/dashboard/ai` + `/dashboard/tests` giúp team ML & QA theo dõi health liên tục.
+
+## 5. Yêu cầu hệ thống
 
 - Python 3.9+
-- pip hoặc conda để quản lý môi trường
-- RAM tối thiểu 8GB
-- PostgreSQL (tùy chọn nếu bật các module DB/persistence)
+- pip hoặc conda
+- RAM ≥ 8 GB, khuyến nghị 16 GB khi huấn luyện lại
+- PostgreSQL (tuỳ chọn, nếu bật persistence cho Control Center / registry)
 
-## 4. Cách cài đặt
+## 6. Cài đặt
 
 ```bash
 git clone https://github.com/AlexNhat/DataStorm_round1.git
@@ -38,71 +45,77 @@ venv\Scripts\activate      # Windows
 pip install -r requirements.txt
 ```
 
-Tạo file `.env` nếu cần tùy chỉnh (ví dụ thông số DB, API key). Có thể tham khảo `.env.example` (tự tạo).
+Khởi tạo `.env` (DB URI, feature flags, API key) dựa trên `docs/OS_ARCHITECTURE.md`.
 
-## 5. Chạy ứng dụng
+## 7. Chạy hệ thống
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-- Dashboard: http://localhost:8000/dashboard  
-- Control Center: http://localhost:8000/control-center  
-- API OpenAPI docs: http://localhost:8000/docs
+- `/dashboard` – KPI & phân tích vận hành.  
+- `/dashboard/models` – Model Registry UI.  
+- `/v8/dashboard` – Cognitive dashboard (chiến lược, multi-agent).  
+- `/os/control-center` – Orchestration & approval center.  
+- `/dashboard/models/status` – JSON health check cho CI/CD.  
+- `/docs` – OpenAPI.  
 
-## 6. Quy trình kiểm thử
+## 8. Huấn luyện mô hình
+
+Các script nằm trong `scripts/` (sử dụng dataset đã merge trong `data/`):
 
 ```bash
-# Unit & integration
+python scripts/train_rl_inventory.py --data data/merged_supply_weather_clean.parquet
+python scripts/train_forecast.py --data data/merged_supply_weather_clean.parquet
+python scripts/train_late_delivery.py --data data/merged_supply_weather_clean.parquet
+python scripts/train_pricing_elasticity.py --data data/merged_supply_weather_clean.parquet
+```
+
+- Kết quả được ghi vào `models/` và `results/metrics/`.  
+- Có thể chạy `python scripts/auto_retrain_global.py` để retrain hàng loạt.  
+- Pipeline dữ liệu chuẩn bị qua `python scripts/preprocess_and_build_feature_store.py`.
+
+## 9. Inference & API Endpoints
+
+FastAPI router `app/routers/ml_api.py` cung cấp các endpoint:
+
+- `POST /ml/logistics/delay`
+- `POST /ml/revenue/forecast` và alias `POST /ml/forecast/demand`
+- `POST /ml/rl/inventory`
+- `POST /ml/customer/churn`
+- `POST /ml/pricing/elasticity`
+
+Payload mẫu nằm trong docstring từng Pydantic schema. Response luôn có `status`, `prediction`, `top_features` hoặc confidence tương ứng. Có thể gọi thử bằng `python scripts/run_inference_samples.py`.
+
+## 10. Kiểm thử & chất lượng
+
+```bash
 pytest tests/unit tests/integration
-
-# Regression & UI (sử dụng playwright/selenium giả lập)
 pytest tests/regression tests/ui
-
-# Báo cáo tổng hợp
-python scripts/run_all_tests_and_build_report.py
+python scripts/run_all_tests_and_build_report.py   # tổng hợp + báo cáo HTML
 ```
 
-Visual regression baseline nằm ở `visual_regression/baseline/`.
+- Visual/UI snapshots ở `tests/ui/snapshots/`.  
+- Báo cáo regression lưu tại `results/test_reports/`.  
+- `scripts/run_ui_tests.py` có thể dùng cho CI headless.
 
-## 7. Cấu trúc thư mục chính
+## 11. Cấu trúc dự án
 
-```
-app/                # FastAPI app, routers, services, templates, static files
-agents/             # Multi-agent & environment definitions
-core/               # Orchestrator, governance, safety kiểm soát AI
-data/               # Dataset & feature store (đã xử lý)
-docs/               # Bộ tài liệu và báo cáo chi tiết
-engines/digital_twin# Mô hình Digital Twin & simulator
-models/             # Model artifacts & schema
-modules/            # Cognitive, meta-learning, self-learning modules
-rl/                 # Reinforcement learning training/eval scripts
-scripts/            # CLI hỗ trợ ETL, training, report, UI tests
-tests/              # Unit, integration, UI, regression suites
-visual_regression/  # Snapshot baseline & regression runner
-```
+Tóm tắt nhanh: `app/` (FastAPI & UI), `modules/` (cognitive, meta-learning, data_pipeline, logging_utils), `scripts/` (training, monitoring, automation), `data/`, `logs/`, `results/`, `docs/`, `tests/`.  
+👉 Xem cấu trúc chi tiết tại [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md).
 
-## 8. Quy trình vận hành tiêu chuẩn
+## 12. GitFlow nhanh
 
-1. Cập nhật dữ liệu: `python scripts/preprocess_and_build_feature_store.py`
-2. Huấn luyện lại mô hình: chạy `scripts/train_model_*.py` tương ứng.
-3. Đánh giá & audit: `python scripts/run_all_models_evaluation.py`
-4. Triển khai / khởi động dịch vụ: `run_server_with_ml.bat` (Windows) hoặc `bash run_server.sh`
-5. Theo dõi real-time qua Dashboard & Control Center.
+1. Tạo nhánh `feature/*` từ `main`.  
+2. Commit nhỏ, mô tả rõ (ví dụ `feat`, `fix`, `docs`).  
+3. `git push -u origin feature/<name>` và mở Pull Request → review → merge `main`.  
+4. Xoá nhánh khi đã merge để giữ repo sạch.
 
-## 9. Bộ tài liệu & resources
+## 13. Tài liệu & hỗ trợ
 
-- Toàn bộ tài liệu nghiệp vụ và kỹ thuật nằm trong thư mục `docs/`.
-- `PROJECT_SUMMARY_REPORT.md`, `QUICK_START.md`, `README_V6_V7.md`, `README_V8_V9.md`, `STATUS.md` cung cấp lịch sử phát triển & hướng dẫn nhanh.
-- Báo cáo chuyên sâu: `docs/CONTROL_CENTER_GUIDE.md`, `docs/ML_IMPLEMENTATION_OVERVIEW.md`, `docs/OS_ARCHITECTURE.md`, ...
+- `docs/CONTROL_CENTER_GUIDE.md`, `docs/ML_IMPLEMENTATION_OVERVIEW.md`, `docs/OS_ARCHITECTURE.md` giải thích kiến trúc.  
+- `PROJECT_SUMMARY_REPORT.md`, `QUICK_START.md`, `README_V6_V7.md`, `README_V8_V9.md`, `STATUS.md` lưu lịch sử release.  
+- Các báo cáo nâng cao: `docs/STRATEGIC_AI_GUIDE.md`, `docs/AI_UI_IMPLEMENTATION_SUMMARY.md`, `docs/RISK_ANALYSIS.md`.
 
-## 10. Triển khai & checklist dành cho người mới
-
-- [x] Clone repo & tạo virtualenv
-- [x] Cài dependencies từ `requirements.txt`
-- [x] (Tùy chọn) Điều chỉnh `.env` cho DB/PostgreSQL
-- [x] Chạy `uvicorn app.main:app --reload`
-- [x] Dùng `pytest` hoặc `scripts/run_all_tests_and_build_report.py` để xác minh
-
-Hệ thống đã được cấu hình để người mới có thể clone và chạy ngay, đồng thời có đầy đủ tài liệu và bộ test để kiểm chứng trước khi triển khai.
+Hệ thống sẵn sàng để người mới clone, cài đặt và chạy ngay, đồng thời cung cấp đầy đủ logging, registry metadata và UI để vận hành ở quy mô doanh nghiệp.
 
