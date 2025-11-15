@@ -119,3 +119,12 @@ Tóm tắt nhanh: `app/` (FastAPI & UI), `modules/` (cognitive, meta-learning, d
 
 Hệ thống sẵn sàng để người mới clone, cài đặt và chạy ngay, đồng thời cung cấp đầy đủ logging, registry metadata và UI để vận hành ở quy mô doanh nghiệp.
 
+## 14. Tài liệu chi tiết
+
+- [docs/AI_MODELS_DETAIL.md](docs/AI_MODELS_DETAIL.md) – mô tả đầy đủ từng mô hình, dữ liệu, pipeline.
+- [docs/PROJECT_VIEWS_DETAIL.md](docs/PROJECT_VIEWS_DETAIL.md) – mô tả cấu trúc và dữ liệu của tất cả trang UI.
+
+## 14. Tài liệu chi tiết
+
+- [docs/AI_MODELS_DETAIL.md](docs/AI_MODELS_DETAIL.md) – mô tả đầy đủ từng mô hình, dữ liệu, pipeline.
+- [docs/PROJECT_VIEWS_DETAIL.md](docs/PROJECT_VIEWS_DETAIL.md) – mô tả cấu trúc và dữ liệu của tất cả trang UI.
