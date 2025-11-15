@@ -1,0 +1,5 @@
+uv venv
+uv sync
+.\.venv\Scripts\activate
+uv run --no-project python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+chạy cổng 8000 nhớ cmd lệnh ipconfig lấy ipv4 đang sử dụng

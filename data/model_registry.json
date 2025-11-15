@@ -37,8 +37,8 @@
         "note": "Updated using global merged supplychain-weather dataset. Fixed previous EU weather timeout.",
         "dataset_version": "supplychain_weather_merged_global.csv",
         "used_in_pipeline": true,
-        "last_inference_call": "2025-11-15T05:58:24Z",
-        "total_inference_calls": 1,
+        "last_inference_call": "2025-11-15T14:36:45Z",
+        "total_inference_calls": 2,
         "last_warning": {
             "timestamp": "2025-11-15T05:58:18Z",
             "issue": "MAE 1026.323 detected on scope region",
@@ -64,8 +64,8 @@
         "note": "Updated using global merged supplychain-weather dataset. Fixed previous EU weather timeout.",
         "dataset_version": "supplychain_weather_merged_global.csv",
         "used_in_pipeline": true,
-        "last_inference_call": "2025-11-15T05:58:24Z",
-        "total_inference_calls": 1,
+        "last_inference_call": "2025-11-15T14:34:24Z",
+        "total_inference_calls": 2,
         "last_warning": {
             "timestamp": "2025-11-15T05:58:18Z",
             "issue": "F1 score at 0.994 for MENA routes",
