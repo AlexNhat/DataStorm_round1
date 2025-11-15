@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}{{ file_name }} - Notebook{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">{{ file_name }}</h1>
+            <p class="text-gray-500 text-sm">Đường dẫn: {{ rel_path }}</p>
+        </div>
+        <div class="space-x-3 text-sm">
+            <a href="/notebooks/" class="text-blue-600 hover:underline">← Quay lại danh sách</a>
+            <a href="/notebooks/{{ rel_path }}?download=1" class="text-blue-600 hover:underline">Download</a>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-lg shadow-md p-6">
+    <p class="text-gray-500 text-sm mb-3">Preview JSON (cắt bớt cho nhẹ). Để xem chi tiết, hãy tải file và mở bằng JupyterLab/VS Code.</p>
+    <pre class="text-xs whitespace-pre-wrap overflow-auto max-h-[600px]">{{ raw_preview }}</pre>
+</div>
+{% endblock %}

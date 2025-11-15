@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Churn Prediction - ML Models{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">👥 Customer Churn Prediction</h1>
+        <p class="text-gray-600">Dự đoán khách hàng có nguy cơ churn (không quay lại mua) dựa trên RFM và lịch sử mua hàng</p>
+    </div>
+
+    <!-- Prediction Form -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4">📝 Nhập thông tin khách hàng</h2>
+        
+        <form id="prediction-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="md:col-span-3">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Customer ID *</label>
+                <input type="text" id="customer_id" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Required" required>
+            </div>
+            
+            <!-- RFM Features -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">RFM Recency (days)</label>
+                <input type="number" id="rfm_recency" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Days since last order" step="0.1">
+                <p class="text-xs text-gray-500 mt-1">Số ngày từ lần mua cuối</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">RFM Frequency</label>
+                <input type="number" id="rfm_frequency" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Number of orders" step="0.1">
+                <p class="text-xs text-gray-500 mt-1">Số đơn hàng tổng cộng</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">RFM Monetary ($)</label>
+                <input type="number" id="rfm_monetary" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Total sales" step="0.01">
+                <p class="text-xs text-gray-500 mt-1">Tổng giá trị mua hàng</p>
+            </div>
+            
+            <!-- Customer Stats -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Total Orders</label>
+                <input type="number" id="total_orders" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Count" step="1">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Total Sales ($)</label>
+                <input type="number" id="total_sales" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="$" step="0.01">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Avg Order Value ($)</label>
+                <input type="number" id="avg_order_value" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="$" step="0.01">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Days Since First Order</label>
+                <input type="number" id="days_since_first_order" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Days" step="1">
+            </div>
+        </form>
+        
+        <div class="mt-6">
+            <button id="btn-predict" class="bg-blue-600 text-white px-8 py-3 rounded-md hover:bg-blue-700 font-semibold">
+                🔮 Dự đoán
+            </button>
+            <button id="btn-reset" class="bg-gray-500 text-white px-8 py-3 rounded-md hover:bg-gray-600 ml-2">
+                🔄 Đặt lại
+            </button>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-section" class="bg-white rounded-lg shadow-md p-6 hidden">
+        <h2 class="text-xl font-bold mb-4">📊 Kết quả dự đoán</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg p-8">
+                <p class="text-sm opacity-90 mb-2">Nguy cơ Churn</p>
+                <p class="text-4xl font-bold" id="churn-probability">-</p>
+                <p class="text-sm mt-2 opacity-90" id="churn-label">-</p>
+            </div>
+            
+            <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-8">
+                <p class="text-sm opacity-90 mb-2">Xác suất giữ chân</p>
+                <p class="text-4xl font-bold" id="retention-probability">-</p>
+                <p class="text-sm mt-2 opacity-90">Retention Probability</p>
+            </div>
+        </div>
+        
+        <!-- Risk Level Indicator -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-3">⚠️ Mức độ rủi ro</h3>
+            <div class="w-full bg-gray-200 rounded-full h-4">
+                <div id="risk-bar" class="bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between mt-2 text-sm text-gray-600">
+                <span>Thấp</span>
+                <span>Trung bình</span>
+                <span>Cao</span>
+            </div>
+        </div>
+        
+        <!-- Recommendations -->
+        <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h3 class="text-lg font-semibold mb-3 text-yellow-800">💡 Khuyến nghị</h3>
+            <div id="recommendations" class="space-y-2 text-yellow-900"></div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-700">Đang xử lý dự đoán...</p>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="error-toast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg z-50 hidden">
+        <div class="flex items-center justify-between">
+            <span id="error-message"></span>
+            <button onclick="document.getElementById('error-toast').classList.add('hidden')" class="ml-4 text-white hover:text-gray-200">✕</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('btn-predict').addEventListener('click', async function() {
+    const form = document.getElementById('prediction-form');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const resultsSection = document.getElementById('results-section');
+    const errorToast = document.getElementById('error-toast');
+    
+    // Collect form data
+    const payload = {};
+    const inputs = form.querySelectorAll('input');
+    inputs.forEach(input => {
+        if (input.value && input.value.trim() !== '') {
+            const key = input.id;
+            let value = input.value;
+            
+            if (input.type === 'number') {
+                value = parseFloat(value);
+            }
+            
+            payload[key] = value;
+        }
+    });
+    
+    // Validate required field
+    if (!payload.customer_id) {
+        document.getElementById('error-message').textContent = 'Vui lòng nhập Customer ID';
+        errorToast.classList.remove('hidden');
+        return;
+    }
+    
+    // Show loading
+    loadingOverlay.classList.remove('hidden');
+    resultsSection.classList.add('hidden');
+    errorToast.classList.add('hidden');
+    
+    try {
+        const response = await fetch('/ml/customer/churn', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.status === 'success') {
+            const prediction = data.prediction;
+            
+            // Display results
+            const churnProb = (prediction.churn_prob || 0) * 100;
+            const retentionProb = (1 - (prediction.churn_prob || 0)) * 100;
+            
+            document.getElementById('churn-probability').textContent = churnProb.toFixed(1) + '%';
+            document.getElementById('churn-label').textContent = prediction.churn_label || 'Unknown';
+            document.getElementById('retention-probability').textContent = retentionProb.toFixed(1) + '%';
+            
+            // Update risk bar
+            document.getElementById('risk-bar').style.width = churnProb + '%';
+            
+            // Generate recommendations
+            const recommendations = [];
+            if (churnProb > 70) {
+                recommendations.push('🔴 Nguy cơ churn rất cao! Cần hành động ngay lập tức.');
+                recommendations.push('💌 Gửi offer đặc biệt (discount, free shipping)');
+                recommendations.push('📞 Liên hệ trực tiếp từ sales team');
+            } else if (churnProb > 50) {
+                recommendations.push('🟡 Nguy cơ churn ở mức trung bình');
+                recommendations.push('📧 Gửi email marketing với offer hấp dẫn');
+                recommendations.push('🎁 Đề xuất sản phẩm mới phù hợp');
+            } else if (churnProb > 30) {
+                recommendations.push('🟢 Nguy cơ churn ở mức thấp');
+                recommendations.push('✅ Tiếp tục chăm sóc khách hàng');
+                recommendations.push('📊 Monitor định kỳ');
+            } else {
+                recommendations.push('✅ Khách hàng trung thành');
+                recommendations.push('🎉 Tiếp tục duy trì mối quan hệ tốt');
+            }
+            
+            const recDiv = document.getElementById('recommendations');
+            recDiv.innerHTML = recommendations.map(rec => `<p>• ${rec}</p>`).join('');
+            
+            resultsSection.classList.remove('hidden');
+        } else {
+            throw new Error(data.detail || 'Prediction failed');
+        }
+    } catch (error) {
+        document.getElementById('error-message').textContent = 'Lỗi: ' + error.message;
+        errorToast.classList.remove('hidden');
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
+document.getElementById('btn-reset').addEventListener('click', function() {
+    const form = document.getElementById('prediction-form');
+    form.reset();
+    document.getElementById('results-section').classList.add('hidden');
+});
+</script>
+{% endblock %}
+

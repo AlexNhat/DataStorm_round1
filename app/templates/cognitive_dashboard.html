@@ -1,0 +1,695 @@
+{% extends "base.html" %}
+
+{% block title %}Trung tâm Chiến lược AI{% endblock %}
+{% block page_title %}Trung tâm Chiến lược & Mô hình AI{% endblock %}
+
+{% block extra_head %}
+    {{ super() }}
+    <style>
+        .glass-card {
+            background-color: #ffffff;
+            border-radius: 24px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 20px 35px rgba(15, 23, 42, 0.05);
+        }
+        .quick-action {
+            border-radius: 22px;
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            padding: 18px;
+            text-align: left;
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.9), rgba(255, 255, 255, 0.9));
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .quick-action:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px rgba(15, 23, 42, 0.08);
+        }
+    </style>
+{% endblock extra_head %}
+
+{% set summary_fallback = {
+    'active_models': 12,
+    'avg_accuracy': '93%',
+    'daily_runs': 48,
+    'pending_actions': 5
+} %}
+{% set fallback_models = [
+    {'name': 'Late Delivery Classifier', 'version': 'v9.1', 'owner': 'Ops Team', 'status': 'success', 'accuracy': '92%', 'updated_at': '15/11 08:05'},
+    {'name': 'Demand Forecast Ensemble', 'version': 'v7.4', 'owner': 'Forecast Squad', 'status': 'warn', 'accuracy': '88%', 'updated_at': '15/11 07:30'},
+    {'name': 'Inventory Optimizer RL', 'version': 'v5.2', 'owner': 'Warehouse AI', 'status': 'error', 'accuracy': '85%', 'updated_at': '14/11 23:10'}
+] %}
+{% set fallback_logs = [
+    {'time': '08:31', 'level': 'Cảnh báo', 'message': 'Tồn kho kho HCM giảm 18%, đề nghị kiểm tra dự báo.'},
+    {'time': '07:48', 'level': 'Thông tin', 'message': 'Model giao trễ v9.1 tái huấn luyện thành công (F1=0.92).'},
+    {'time': '07:05', 'level': 'Lỗi', 'message': 'Warehouse AI không đồng bộ được dữ liệu thời tiết EU (timeout).'}
+] %}
+{% set fallback_strategies = [
+    {
+        'id': 'strategy_a',
+        'title': 'Đệm tồn kho mùa mưa',
+        'tag': 'Service',
+        'tag_color': 'bg-purple-50 text-purple-700',
+        'description': 'Tăng tồn kho tại các kho rủi ro mưa lớn để bảo vệ SLA trong mùa cao điểm.',
+        'confidence': 87.2,
+        'metrics': [
+            {'label': 'Chi phí ước tính', 'value': '1,240,000 USD'},
+            {'label': 'Lead time kỳ vọng', 'value': '+0.5 ngày buffer'},
+            {'label': 'Service level dự đoán', 'value': '97%'}
+        ],
+        'actions': [
+            'Tăng 30% tồn kho tại VN-WH01 & VN-WH02 trong 2 tuần tới.',
+            'Thiết lập cảnh báo thời tiết >25mm để kích hoạt buffer giao nhận.'
+        ],
+        'risks': ['Nguy cơ dư kho nếu nhu cầu giảm', 'Chi phí lưu kho tăng 12%'],
+        'kpis': [
+            {'label': 'Tăng tồn kho', 'value': '30%'},
+            {'label': 'Giảm thiếu hàng', 'value': '20%'},
+            {'label': 'Giảm trễ giao', 'value': '4.2%'}
+        ],
+        'estimated_profit': '780,000 USD'
+    },
+    {
+        'id': 'strategy_b',
+        'title': 'Cân bằng tồn kho & buffer',
+        'tag': 'Lead Time',
+        'tag_color': 'bg-sky-50 text-sky-700',
+        'description': 'Phân bổ lại tồn kho giữa các kho để giảm tải điểm nghẽn và tăng buffer lead time.',
+        'confidence': 82.4,
+        'metrics': [
+            {'label': 'Chi phí ước tính', 'value': '980,000 USD'},
+            {'label': 'Lead time kỳ vọng', 'value': '+0.7 ngày buffer'},
+            {'label': 'Service level dự đoán', 'value': '95%'}
+        ],
+        'actions': [
+            'Dịch chuyển 12% tồn kho từ VN-WH02 sang TH-WH01 trong tuần này.',
+            'Tăng buffer lead time thêm 0.7 ngày cho tuyến biển Đông Nam Á.'
+        ],
+        'risks': ['Chi phí chuyển kho tăng', 'Phụ thuộc vào năng lực kho nhận hàng'],
+        'kpis': [
+            {'label': 'Lead time buffer', 'value': '20%'},
+            {'label': 'Giảm rủi ro trễ', 'value': '2.8%'},
+            {'label': 'Cân bằng địa lý', 'value': '0.9'}
+        ],
+        'estimated_profit': '540,000 USD'
+    },
+    {
+        'id': 'strategy_c',
+        'title': 'Ưu tiên khách VIP',
+        'tag': 'Customer',
+        'tag_color': 'bg-emerald-50 text-emerald-700',
+        'description': 'Ưu tiên xử lý đơn VIP và phân bổ tồn kho riêng để bảo vệ doanh thu cao.',
+        'confidence': 80.0,
+        'metrics': [
+            {'label': 'Chi phí ước tính', 'value': '760,000 USD'},
+            {'label': 'Lead time kỳ vọng', 'value': 'Xử lý tức thì'},
+            {'label': 'Service level dự đoán', 'value': '98% VIP'}
+        ],
+        'actions': [
+            'Dành riêng 10 SKU quan trọng cho phân khúc VIP với hạn mức tối thiểu.',
+            'Đẩy đơn VIP vào hàng đợi ưu tiên và tăng thêm 1 ca xử lý ban đêm.'
+        ],
+        'risks': ['Khách thường có thể giao muộn hơn', 'Cần giám sát KPI phân bổ VIP'],
+        'kpis': [
+            {'label': 'SLA VIP', 'value': '98%'},
+            {'label': 'Giảm churn', 'value': '2.8%'},
+            {'label': 'Boost doanh thu VIP', 'value': '31,500 USD'}
+        ],
+        'estimated_profit': '660,000 USD'
+    }
+] %}
+{% set fallback_charts = {
+    'accuracy': {'labels': ['09/11', '10/11', '11/11', '12/11', '13/11', '14/11', '15/11'], 'values': [0.934, 0.928, 0.932, 0.938, 0.941, 0.939, 0.944], 'threshold': 0.92},
+    'system_load': {'labels': ['Inference', 'Huấn luyện', 'Mô phỏng'], 'values': [32, 14, 8]}
+} %}
+
+{% set snapshot = dashboard_snapshot|default({}, true) %}
+{% set summary = snapshot.summary|default(summary_fallback, true) %}
+{% set model_list = snapshot.models|default(fallback_models, true) %}
+{% set log_items = snapshot.logs|default(fallback_logs, true) %}
+{% set strategy_cards = snapshot.strategies|default(fallback_strategies, true) %}
+{% set chart_data = snapshot.charts|default(fallback_charts, true) %}
+
+{% set status_color_map = {
+    'success': 'bg-emerald-50 text-emerald-600',
+    'warn': 'bg-amber-50 text-amber-600',
+    'warning': 'bg-amber-50 text-amber-600',
+    'error': 'bg-rose-50 text-rose-600',
+    'failed': 'bg-rose-50 text-rose-600',
+    'default': 'bg-slate-100 text-slate-600'
+} %}
+
+{% block content %}
+<section class="glass-card p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+        <p class="text-xs uppercase tracking-[0.35em] text-slate-400 mb-2">AI Operations</p>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-1">Trung tâm đề xuất chiến lược</h2>
+        <p class="text-sm text-slate-500">Theo dõi sức khỏe mô hình, biểu đồ và các chiến lược AI được gợi ý.</p>
+    </div>
+    <div class="flex flex-wrap gap-3 text-sm">
+        <button id="btn-refresh" class="rounded-2xl border border-slate-200 px-5 py-2 font-semibold text-slate-700 hover:bg-slate-50 transition">Làm mới dữ liệu</button>
+        <button id="btn-create-run" class="rounded-2xl bg-blue-600 px-6 py-2 font-semibold text-white shadow-lg shadow-blue-600/30 hover:bg-blue-500 transition">Tạo phiên chạy mới</button>
+    </div>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+    <div class="glass-card p-5">
+        <p class="text-sm text-slate-500 mb-1">Mô hình đang hoạt động</p>
+        <p id="summary-active" class="text-3xl font-semibold text-slate-900">{{ summary.active_models }}</p>
+        <p class="text-xs text-slate-400 mt-1">Triển khai production</p>
+    </div>
+    <div class="glass-card p-5">
+        <p class="text-sm text-slate-500 mb-1">Độ chính xác TB</p>
+        <p id="summary-accuracy" class="text-3xl font-semibold text-emerald-600">{{ summary.avg_accuracy }}</p>
+        <p class="text-xs text-slate-400 mt-1">Chu kỳ huấn luyện mới nhất</p>
+    </div>
+    <div class="glass-card p-5">
+        <p class="text-sm text-slate-500 mb-1">Số phiên chạy hôm nay</p>
+        <p id="summary-runs" class="text-3xl font-semibold text-slate-900">{{ summary.daily_runs }}</p>
+        <p class="text-xs text-slate-400 mt-1">Inference + retraining</p>
+    </div>
+    <div class="glass-card p-5">
+        <p class="text-sm text-slate-500 mb-1">Hành động đang chờ</p>
+        <p id="summary-pending" class="text-3xl font-semibold text-amber-500">{{ summary.pending_actions }}</p>
+        <p class="text-xs text-slate-400 mt-1">Cần phê duyệt</p>
+    </div>
+</section>
+
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <div class="glass-card p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Xu hướng độ chính xác</h3>
+                <p class="text-sm text-slate-500">7 ngày gần nhất (ngưỡng cảnh báo 92%).</p>
+            </div>
+            <span class="badge bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-semibold">Ổn định</span>
+        </div>
+        <canvas id="accuracy-chart" class="h-64"></canvas>
+    </div>
+    <div class="glass-card p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Tải hệ thống & chi phí</h3>
+                <p class="text-sm text-slate-500">Phân bổ inference / huấn luyện / mô phỏng.</p>
+            </div>
+            <span class="badge bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-semibold">Realtime</span>
+        </div>
+        <canvas id="load-chart" class="h-64"></canvas>
+    </div>
+</section>
+
+<section class="glass-card p-6 space-y-5 mt-6">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div>
+            <h3 class="text-lg font-semibold text-slate-900">Chiến lược AI đề xuất</h3>
+            <p class="text-sm text-slate-500">Danh sách chiến lược mới nhất từ Planner AI.</p>
+        </div>
+        <p class="text-xs text-slate-400">Tự động cập nhật sau mỗi lần chạy.</p>
+    </div>
+    <div id="strategy-cards" class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        {% for strategy in strategy_cards %}
+        <article class="rounded-3xl border border-slate-100 p-5 bg-white shadow-sm" data-strategy="{{ strategy.id }}">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-xs text-slate-400">Độ tin cậy {{ strategy.confidence }}%</p>
+                    <h4 class="text-lg font-semibold text-slate-900 mt-1">{{ strategy.title }}</h4>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-semibold {{ strategy.tag_color }}">{{ strategy.tag }}</span>
+            </div>
+            <p class="text-sm text-slate-600 mt-2">{{ strategy.description }}</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+                {% for metric in strategy.metrics %}
+                <div class="rounded-2xl border border-slate-100 p-3 bg-slate-50">
+                    <p class="text-xs text-slate-400">{{ metric.label }}</p>
+                    <p class="text-base font-semibold text-slate-900 mt-1">{{ metric.value }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="mt-4">
+                <p class="text-xs uppercase tracking-wide text-slate-400">Hành động chính</p>
+                <ul class="list-disc list-inside text-sm text-slate-700 mt-1 space-y-1">
+                    {% for action in strategy.actions %}
+                    <li>{{ action }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="mt-4">
+                <p class="text-xs uppercase tracking-wide text-slate-400">Rủi ro cần lưu ý</p>
+                <ul class="list-disc list-inside text-sm text-slate-500 mt-1 space-y-1">
+                    {% for risk in strategy.risks %}
+                    <li>{{ risk }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2 text-xs">
+                {% for kpi in strategy.kpis %}
+                <span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-full">{{ kpi.label }}: {{ kpi.value }}</span>
+                {% endfor %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="glass-card p-6 space-y-4 mt-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-slate-900">Danh sách mô hình</h3>
+            <p class="text-sm text-slate-500">Trạng thái cập nhật và chủ sở hữu.</p>
+        </div>
+        <p class="text-xs text-slate-400">Cập nhật {{ snapshot.updated_at|default("", true) }}</p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr class="text-left text-slate-400">
+                    <th class="pb-3 pr-4 font-medium">Mô hình</th>
+                    <th class="pb-3 pr-4 font-medium">Phiên bản</th>
+                    <th class="pb-3 pr-4 font-medium">Chủ sở hữu</th>
+                    <th class="pb-3 pr-4 font-medium">Độ chính xác</th>
+                    <th class="pb-3 pr-4 font-medium">Cập nhật</th>
+                    <th class="pb-3 font-medium">Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody id="model-rows" class="divide-y divide-slate-100">
+                {% for model in model_list %}
+                {% set badge_style = status_color_map.get(model.status|lower, status_color_map['default']) %}
+                <tr class="text-slate-600">
+                    <td class="py-3 pr-4 font-medium text-slate-900">{{ model.name }}</td>
+                    <td class="py-3 pr-4">{{ model.version }}</td>
+                    <td class="py-3 pr-4">{{ model.owner }}</td>
+                    <td class="py-3 pr-4">{{ model.accuracy }}</td>
+                    <td class="py-3 pr-4">{{ model.updated_at }}</td>
+                    <td class="py-3">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold {{ badge_style }}">{{ model.status|title }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <div class="glass-card p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Log cảnh báo</h3>
+                <p class="text-sm text-slate-500">Thông điệp mới nhất từ dịch vụ AI.</p>
+            </div>
+            <button class="text-sm text-slate-500 hover:text-slate-700" id="btn-download-log">Tải log</button>
+        </div>
+        <div id="log-list" class="space-y-3 max-h-72 overflow-auto pr-2">
+            {% for item in log_items %}
+            <div class="rounded-2xl border border-slate-100 px-4 py-3 bg-white">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>{{ item.time }}</span>
+                    <span>{{ item.level }}</span>
+                </div>
+                <p class="text-sm text-slate-700 mt-1">{{ item.message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="glass-card p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Hành động nhanh</h3>
+                <p class="text-sm text-slate-500">Khởi tạo tác vụ chiến lược ngay.</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 gap-4">
+            <button class="quick-action" data-action="deploy-model" data-label="Triển khai mô hình mới">
+                <p class="text-sm text-slate-500">Triển khai</p>
+                <p class="text-base font-semibold text-slate-900">Roll-out mô hình production</p>
+            </button>
+            <button class="quick-action" data-action="weather-simulation" data-label="Mô phỏng thời tiết">
+                <p class="text-sm text-slate-500">Mô phỏng</p>
+                <p class="text-base font-semibold text-slate-900">Stress test thời tiết cực đoan</p>
+            </button>
+            <button class="quick-action" data-action="warehouse-restart" data-label="Khởi động Warehouse AI">
+                <p class="text-sm text-slate-500">Warehouse AI</p>
+                <p class="text-base font-semibold text-slate-900">Khởi động lại bộ tối ưu tồn kho</p>
+            </button>
+        </div>
+        <div class="border-t border-slate-100 pt-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-slate-900">Kết quả hành động gần nhất</p>
+                    <p class="text-xs text-slate-500">Theo thời gian thực khi bạn kích hoạt.</p>
+                </div>
+                <span class="text-xs text-slate-400" id="action-result-count">0 hành động</span>
+            </div>
+            <div id="action-result-list" class="mt-3 space-y-2 max-h-48 overflow-auto pr-1">
+                <p class="text-sm text-slate-400">Chưa có hành động nào được kích hoạt.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div id="toast" class="hidden fixed bottom-6 right-6 rounded-2xl px-4 py-3 text-sm font-semibold shadow-lg"></div>
+<div id="processing-overlay" class="hidden fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-40 flex items-center justify-center">
+    <div class="bg-white rounded-2xl px-6 py-4 text-slate-600 text-sm">Đang xử lý...</div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script>
+(() => {
+    const initialState = {
+        summary: {{ summary|default(summary_fallback, true)|tojson }},
+        models: {{ model_list|default(fallback_models, true)|tojson }},
+        logs: {{ log_items|default(fallback_logs, true)|tojson }},
+        strategies: {{ strategy_cards|default(fallback_strategies, true)|tojson }},
+        charts: {{ chart_data|default(fallback_charts, true)|tojson }},
+        quickActions: []
+    };
+
+    const elems = {
+        summaryActive: document.getElementById('summary-active'),
+        summaryAccuracy: document.getElementById('summary-accuracy'),
+        summaryRuns: document.getElementById('summary-runs'),
+        summaryPending: document.getElementById('summary-pending'),
+        strategyCards: document.getElementById('strategy-cards'),
+        modelRows: document.getElementById('model-rows'),
+        logList: document.getElementById('log-list'),
+        overlay: document.getElementById('processing-overlay'),
+        toast: document.getElementById('toast'),
+        accuracyCanvas: document.getElementById('accuracy-chart'),
+        loadCanvas: document.getElementById('load-chart'),
+        actionResultList: document.getElementById('action-result-list'),
+        actionResultCount: document.getElementById('action-result-count')
+    };
+
+    const charts = {
+        accuracy: null,
+        load: null
+    };
+
+    const state = {
+        snapshot: initialState,
+        quickActions: initialState.quickActions || []
+    };
+
+    const statusBadge = (status) => {
+        const map = {
+            success: "bg-emerald-50 text-emerald-600",
+            warn: "bg-amber-50 text-amber-600",
+            warning: "bg-amber-50 text-amber-600",
+            error: "bg-rose-50 text-rose-600",
+            failed: "bg-rose-50 text-rose-600"
+        };
+        return map[status?.toLowerCase()] || "bg-slate-100 text-slate-600";
+    };
+
+    const showToast = (message, mode = 'success') => {
+        if (!elems.toast) return;
+        elems.toast.textContent = message;
+        elems.toast.className = `fixed bottom-6 right-6 rounded-2xl px-4 py-3 text-sm font-semibold shadow-lg ${
+            mode === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+        }`;
+        elems.toast.classList.remove('hidden');
+        setTimeout(() => elems.toast.classList.add('hidden'), 2600);
+    };
+
+    const toggleOverlay = (visible) => {
+        elems.overlay?.classList.toggle('hidden', !visible);
+    };
+
+    const renderSummary = (summary) => {
+        if (!summary) return;
+        elems.summaryActive.textContent = summary.active_models ?? '—';
+        elems.summaryAccuracy.textContent = summary.avg_accuracy ?? '—';
+        elems.summaryRuns.textContent = summary.daily_runs ?? '—';
+        elems.summaryPending.textContent = summary.pending_actions ?? '—';
+    };
+
+    const renderStrategies = (strategies = []) => {
+        if (!elems.strategyCards) return;
+        if (!Array.isArray(strategies) || !strategies.length) {
+            elems.strategyCards.innerHTML = '<p class="text-sm text-slate-500">Chưa có chiến lược nào. Hãy tạo phiên chạy mới.</p>';
+            return;
+        }
+        elems.strategyCards.innerHTML = strategies.map((strategy) => `
+            <article class="rounded-3xl border border-slate-100 p-5 bg-white shadow-sm" data-strategy="${strategy.id}">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-xs text-slate-400">Độ tin cậy ${strategy.confidence ?? 0}%</p>
+                        <h4 class="text-lg font-semibold text-slate-900 mt-1">${strategy.title}</h4>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${strategy.tag_color ?? 'bg-slate-100 text-slate-600'}">${strategy.tag}</span>
+                </div>
+                <p class="text-sm text-slate-600 mt-2">${strategy.description}</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+                    ${(strategy.metrics || []).map(metric => `
+                        <div class="rounded-2xl border border-slate-100 p-3 bg-slate-50">
+                            <p class="text-xs text-slate-400">${metric.label}</p>
+                            <p class="text-base font-semibold text-slate-900 mt-1">${metric.value}</p>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="mt-4">
+                    <p class="text-xs uppercase tracking-wide text-slate-400">Hành động chính</p>
+                    <ul class="list-disc list-inside text-sm text-slate-700 mt-1 space-y-1">
+                        ${(strategy.actions || []).map(action => `<li>${action}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="mt-4">
+                    <p class="text-xs uppercase tracking-wide text-slate-400">Rủi ro cần lưu ý</p>
+                    <ul class="list-disc list-inside text-sm text-slate-500 mt-1 space-y-1">
+                        ${(strategy.risks || []).map(risk => `<li>${risk}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-2 text-xs">
+                    ${(strategy.kpis || []).map(kpi => `<span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-full">${kpi.label}: ${kpi.value}</span>`).join('')}
+                </div>
+            </article>
+        `).join('');
+    };
+
+    const renderModels = (models = []) => {
+        if (!elems.modelRows) return;
+        elems.modelRows.innerHTML = models.map(model => `
+            <tr class="text-slate-600">
+                <td class="py-3 pr-4 font-medium text-slate-900">${model.name}</td>
+                <td class="py-3 pr-4">${model.version}</td>
+                <td class="py-3 pr-4">${model.owner}</td>
+                <td class="py-3 pr-4">${model.accuracy}</td>
+                <td class="py-3 pr-4">${model.updated_at}</td>
+                <td class="py-3">
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusBadge(model.status)}">${(model.status || '').charAt(0).toUpperCase() + (model.status || '').slice(1)}</span>
+                </td>
+            </tr>
+        `).join('');
+    };
+
+    const renderLogs = (logs = []) => {
+        if (!elems.logList) return;
+        elems.logList.innerHTML = logs.map(log => `
+            <div class="rounded-2xl border border-slate-100 px-4 py-3 bg-white">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>${log.time}</span>
+                    <span>${log.level}</span>
+                </div>
+                <p class="text-sm text-slate-700 mt-1">${log.message}</p>
+            </div>
+        `).join('');
+    };
+
+    const renderCharts = (chartData = {}) => {
+        if (window.Chart && elems.accuracyCanvas) {
+            if (charts.accuracy) charts.accuracy.destroy();
+            charts.accuracy = new Chart(elems.accuracyCanvas, {
+                type: 'line',
+                data: {
+                    labels: chartData.accuracy?.labels || [],
+                    datasets: [{
+                        label: 'Accuracy',
+                        data: chartData.accuracy?.values || [],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                        tension: 0.35,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            suggestedMin: 0.88,
+                            suggestedMax: 0.97
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        if (window.Chart && elems.loadCanvas) {
+            if (charts.load) charts.load.destroy();
+            charts.load = new Chart(elems.loadCanvas, {
+                type: 'bar',
+                data: {
+                    labels: chartData.system_load?.labels || [],
+                    datasets: [{
+                        label: 'Số phiên chạy',
+                        data: chartData.system_load?.values || [],
+                        backgroundColor: ['#0ea5e9', '#6366f1', '#f97316']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    };
+
+    const renderSnapshot = (snapshot) => {
+        state.snapshot = snapshot;
+        renderSummary(snapshot.summary);
+        renderStrategies(snapshot.strategies);
+        renderModels(snapshot.models);
+        renderLogs(snapshot.logs);
+        renderCharts(snapshot.charts);
+        renderActionResults(state.quickActions);
+    };
+
+    const renderActionResults = (actions = []) => {
+        if (!elems.actionResultList) return;
+        const count = actions.length;
+        if (elems.actionResultCount) {
+            elems.actionResultCount.textContent = `${count} hành động`;
+        }
+        if (!count) {
+            elems.actionResultList.innerHTML = '<p class="text-sm text-slate-400">Chưa có hành động nào được kích hoạt.</p>';
+            return;
+        }
+        elems.actionResultList.innerHTML = actions.map((item) => `
+            <div class="rounded-2xl border border-slate-100 px-3 py-2 bg-white">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>${item.time}</span>
+                    <span>${item.label}</span>
+                </div>
+                <p class="text-sm text-slate-700 mt-1">${item.message}</p>
+                ${item.detail?.summary ? `<p class="text-sm text-slate-600 mt-1">${item.detail.summary}</p>` : ''}
+                ${item.detail?.definition ? `<p class="text-xs text-slate-400 mt-1">${item.detail.definition}</p>` : ''}
+                ${Array.isArray(item.detail?.impacts) && item.detail.impacts.length ? `
+                    <div class="mt-2">
+                        <p class="text-xs uppercase tracking-wide text-slate-400">Ảnh hưởng chính</p>
+                        <ul class="list-disc list-inside text-sm text-slate-600 mt-1 space-y-1">
+                            ${item.detail.impacts.map(impact => `<li>${impact}</li>`).join('')}
+                        </ul>
+                    </div>` : ''}
+                ${Array.isArray(item.detail?.risks) && item.detail.risks.length ? `
+                    <div class="mt-2">
+                        <p class="text-xs uppercase tracking-wide text-slate-400">Rủi ro cần lưu ý</p>
+                        <ul class="list-disc list-inside text-sm text-slate-500 mt-1 space-y-1">
+                            ${item.detail.risks.map(risk => `<li>${risk}</li>`).join('')}
+                        </ul>
+                    </div>` : ''}
+                ${Array.isArray(item.detail?.next_steps) && item.detail.next_steps.length ? `
+                    <div class="mt-2">
+                        <p class="text-xs uppercase tracking-wide text-slate-400">Đề xuất tiếp theo</p>
+                        <ul class="list-disc list-inside text-sm text-slate-500 mt-1 space-y-1">
+                            ${item.detail.next_steps.map(step => `<li>${step}</li>`).join('')}
+                        </ul>
+                    </div>` : ''}
+            </div>
+        `).join('');
+    };
+
+    const fetchJSON = async (url, options = {}) => {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`HTTP ${response.status}: ${text}`);
+        }
+        return response.json();
+    };
+
+    const refreshDashboard = async () => {
+        toggleOverlay(true);
+        try {
+            const snapshot = await fetchJSON('/v8/dashboard/data');
+            renderSnapshot(snapshot);
+            showToast('Đã cập nhật dữ liệu dashboard.');
+        } catch (error) {
+            console.error(error);
+            showToast('Không thể tải dữ liệu dashboard.', 'error');
+        } finally {
+            toggleOverlay(false);
+        }
+    };
+
+    const runStrategyGeneration = async () => {
+        toggleOverlay(true);
+        try {
+            const payload = {
+                objectives: ['balance', 'min_cost', 'max_service']
+            };
+            const result = await fetchJSON('/v8/strategies/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (Array.isArray(result.ui_cards)) {
+                renderStrategies(result.ui_cards);
+            }
+            showToast(`Đã sinh ${result.ui_cards?.length ?? result.strategies?.length ?? 0} chiến lược mới.`);
+        } catch (error) {
+            console.error(error);
+            showToast('Không thể tạo chiến lược mới.', 'error');
+        } finally {
+            toggleOverlay(false);
+        }
+    };
+
+    const triggerQuickAction = async (actionId, label) => {
+        toggleOverlay(true);
+        try {
+            const response = await fetchJSON('/v8/actions/trigger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action_id: actionId, label })
+            });
+            showToast(response.message || 'Đã gửi hành động.');
+            if (response.log_entry) {
+                const updatedLogs = [response.log_entry, ...(state.snapshot.logs || [])].slice(0, 6);
+                state.snapshot.logs = updatedLogs;
+                renderLogs(updatedLogs);
+            }
+            const actionRecord = {
+                time: response.log_entry?.time || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                label: label || actionId,
+                message: response.message || 'Đã thực thi hành động.'
+            };
+            state.quickActions = [actionRecord, ...state.quickActions].slice(0, 5);
+            renderActionResults(state.quickActions);
+        } catch (error) {
+            console.error(error);
+            showToast('Không thể gửi hành động.', 'error');
+        } finally {
+            toggleOverlay(false);
+        }
+    };
+
+    document.getElementById('btn-refresh')?.addEventListener('click', refreshDashboard);
+    document.getElementById('btn-create-run')?.addEventListener('click', runStrategyGeneration);
+    document.getElementById('btn-download-log')?.addEventListener('click', () => showToast('Log đã được tải (mock).'));
+
+    document.querySelectorAll('.quick-action').forEach((button) => {
+        button.addEventListener('click', () => {
+            triggerQuickAction(button.dataset.action, button.dataset.label);
+        });
+    });
+
+    renderSnapshot(initialState);
+    window.__COGNITIVE_STATE__ = state;
+})();
+</script>
+{% endblock extra_scripts %}

@@ -1,0 +1,302 @@
+{% extends "base.html" %} {% block title %}Bảng điều khiển kiểm thử{% endblock
+%} {% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  .status-pass {
+    color: #22c55e;
+    font-weight: 600;
+  }
+  .status-fail {
+    color: #ef4444;
+    font-weight: 600;
+  }
+  .status-skipped {
+    color: #f59e0b;
+    font-weight: 600;
+  }
+  .badge-unit {
+    background-color: #e5e7eb;
+  }
+  .badge-integration {
+    background-color: #bfdbfe;
+  }
+  .badge-ui {
+    background-color: #ddd6fe;
+  }
+  .badge-regression {
+    background-color: #fed7aa;
+  }
+  .badge-visual {
+    background-color: #fcd34d;
+  }
+  .badge-smoke {
+    background-color: #bbf7d0;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">
+        Bảng điều khiển kiểm thử
+      </h1>
+      <p class="text-gray-600">
+        Tổng quan nhanh về kết quả unit, integration, UI, regression và smoke
+        test.
+      </p>
+      <p class="text-xs text-gray-500">
+        Cập nhật lần cuối: {{ report.summary.created_at }}
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-3 text-sm">
+      <button
+        id="btn-run-tests"
+        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+      >
+        🚀 Chạy lại toàn bộ test
+      </button>
+      <a
+        href="/test/report"
+        class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
+        >⬇ Tải JSON</a
+      >
+      <a
+        href="/doc-files/tests/README_TESTING.md"
+        class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
+        >📄 Chiến lược kiểm thử</a
+      >
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-lg shadow-md p-4">
+    <div class="text-xs text-gray-500">Tổng số test</div>
+    <div class="text-3xl font-bold text-gray-800">
+      {{ report.summary.total }}
+    </div>
+  </div>
+  <div class="bg-white rounded-lg shadow-md p-4">
+    <div class="text-xs text-gray-500">PASS</div>
+    <div class="text-3xl font-bold status-pass">
+      {{ report.summary.passed }}
+    </div>
+  </div>
+  <div class="bg-white rounded-lg shadow-md p-4">
+    <div class="text-xs text-gray-500">FAIL</div>
+    <div class="text-3xl font-bold status-fail">
+      {{ report.summary.failed }}
+    </div>
+  </div>
+  <div class="bg-white rounded-lg shadow-md p-4">
+    <div class="text-xs text-gray-500">Coverage</div>
+    <div class="text-3xl font-bold text-indigo-600">
+      {{ report.coverage.percent }}%
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white rounded-lg shadow-md p-6 h-80">
+    <h2 class="text-lg font-semibold mb-3">Tỉ lệ Pass/Fail</h2>
+    <div class="h-64">
+      <canvas id="donutChart"></canvas>
+    </div>
+  </div>
+  <div class="bg-white rounded-lg shadow-md p-6 h-80">
+    <h2 class="text-lg font-semibold mb-3">Số test theo danh mục</h2>
+    <div class="h-64">
+      <canvas id="barChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+  <div class="flex justify-between mb-4">
+    <h2 class="text-xl font-semibold">Danh sách test</h2>
+    <div class="space-x-2 text-sm">
+      <select id="filter-category" class="border rounded px-3 py-1">
+        <option value="">Tất cả danh mục</option>
+        {% for cat in report.categories.keys() %}
+        <option value="{{ cat }}">{{ cat }}</option>
+        {% endfor %}
+      </select>
+      <select id="filter-status" class="border rounded px-3 py-1">
+        <option value="">Tất cả trạng thái</option>
+        <option value="pass">PASS</option>
+        <option value="fail">FAIL</option>
+        <option value="skipped">SKIPPED</option>
+      </select>
+    </div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm" id="test-table">
+      <thead class="text-left text-gray-500">
+        <tr>
+          <th class="py-2">Tên test</th>
+          <th class="py-2">Danh mục</th>
+          <th class="py-2">Trạng thái</th>
+          <th class="py-2">Thời gian</th>
+          <th class="py-2">Chi tiết</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for test in report.tests %}
+        <tr
+          class="border-b"
+          data-category="{{ test.type }}"
+          data-status="{{ test.status }}"
+        >
+          <td class="py-2">{{ test.name }}</td>
+          <td class="py-2">
+            <span class="px-2 py-1 rounded text-xs badge-{{ test.type }}"
+              >{{ test.type }}</span
+            >
+          </td>
+          <td class="py-2">
+            <span class="status-{{ test.status }}"
+              >{{ test.status|upper }}</span
+            >
+          </td>
+          <td class="py-2">{{ test.duration }}</td>
+          <td class="py-2">
+            <button
+              class="detail-btn text-blue-600 hover:underline text-xs"
+              data-test="{{ test|tojson }}"
+            >
+              Xem chi tiết
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="bg-white rounded-lg shadow-md p-6">
+  <h2 class="text-xl font-semibold mb-4">Ảnh chụp UI & so sánh thị giác</h2>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div>
+      <p class="text-sm text-gray-500 mb-2">Ảnh nền chuẩn</p>
+      <img
+        src="{{ url_for('static', path='images/test_dashboard_placeholder.png') }}"
+        class="rounded border"
+        alt="Baseline snapshot"
+      />
+    </div>
+    <div>
+      <p class="text-sm text-gray-500 mb-2">Ảnh lần chạy hiện tại</p>
+      <img
+        src="{{ url_for('static', path='images/test_dashboard_placeholder.png') }}"
+        class="rounded border"
+        alt="Current snapshot"
+      />
+    </div>
+    <div>
+      <p class="text-sm text-gray-500 mb-2">Khác biệt (diff)</p>
+      <img
+        src="{{ url_for('static', path='images/test_dashboard_placeholder.png') }}"
+        class="rounded border"
+        alt="Visual diff"
+      />
+    </div>
+  </div>
+</div>
+
+<div
+  id="detail-modal"
+  class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+>
+  <div
+    class="bg-white rounded-lg shadow-xl w-11/12 md:w-2/3 h-4/5 flex flex-col"
+  >
+    <div class="flex justify-between items-center p-4 border-b">
+      <h3 id="modal-title" class="text-xl font-semibold"></h3>
+      <button id="modal-close" class="text-gray-500 hover:text-gray-700">
+        Đóng
+      </button>
+    </div>
+    <div class="p-4 overflow-auto space-y-3 text-sm" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+  const reportData = {{ report|tojson }};
+  const donutCtx = document.getElementById('donutChart').getContext('2d');
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  const donutChart = new Chart(donutCtx, {
+      type: 'doughnut',
+      data: {
+          labels: ['PASS', 'FAIL', 'SKIPPED'],
+          datasets: [{
+              data: [reportData.summary.passed, reportData.summary.failed, reportData.summary.skipped],
+              backgroundColor: ['#22C55E', '#EF4444', '#F59E0B']
+          }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+  });
+  const barChart = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+          labels: Object.keys(reportData.categories),
+          datasets: [{
+              data: Object.values(reportData.categories).map(arr => arr.length),
+              backgroundColor: '#6366F1'
+          }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  document.getElementById('filter-category').addEventListener('change', filterTable);
+  document.getElementById('filter-status').addEventListener('change', filterTable);
+  function filterTable() {
+      const cat = document.getElementById('filter-category').value;
+      const status = document.getElementById('filter-status').value;
+      document.querySelectorAll('#test-table tbody tr').forEach(row => {
+          const matchesCat = !cat || row.dataset.category === cat;
+          const matchesStatus = !status || row.dataset.status === status;
+          row.style.display = (matchesCat && matchesStatus) ? '' : 'none';
+      });
+  }
+
+  document.querySelectorAll('.detail-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+          const test = JSON.parse(btn.dataset.test);
+          const body = document.getElementById('modal-body');
+          document.getElementById('modal-title').innerText = test.name;
+          body.innerHTML = `
+              <p><strong>File:</strong> ${test.file}</p>
+              <p><strong>Danh mục:</strong> ${test.type}</p>
+              <p><strong>Thời gian:</strong> ${test.duration}</p>
+              <p><strong>Trạng thái:</strong> <span class="status-${test.status}">${test.status}</span></p>
+              <p><strong>Cảnh báo:</strong> ${test.warnings.join('<br>') || 'Không có'}</p>
+              <p><strong>Lỗi:</strong> ${test.errors.join('<br>') || 'Không có'}</p>
+              ${test.snapshot_path ? `<p><strong>Snapshot:</strong> <a href="/${test.snapshot_path}" target="_blank">Xem ảnh</a></p>` : ''}
+              ${test.visual_diff_path ? `<p><strong>Visual diff:</strong> <a href="/${test.visual_diff_path}" target="_blank">Xem diff</a></p>` : ''}
+              <p><strong>Log đầy đủ:</strong> <a href="/assets/results/test_reports/full_test_log.txt" target="_blank">full_test_log.txt</a></p>
+          `;
+          document.getElementById('detail-modal').classList.remove('hidden');
+      });
+  });
+
+  document.getElementById('modal-close').addEventListener('click', () => {
+      document.getElementById('detail-modal').classList.add('hidden');
+  });
+
+  document.getElementById('btn-run-tests').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-run-tests');
+      btn.disabled = true;
+      btn.innerText = 'Đang chạy...';
+      try {
+          await fetch('/test/run');
+          window.location.reload();
+      } catch (err) {
+          alert('Không chạy được test, kiểm tra log trên server.');
+      } finally {
+          btn.disabled = false;
+          btn.innerText = '🚀 Chạy lại toàn bộ test';
+      }
+  });
+</script>
+{% endblock %}

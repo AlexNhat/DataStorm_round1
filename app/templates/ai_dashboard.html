@@ -1,0 +1,215 @@
+﻿{% extends "base.html" %}
+
+{% block title %}AI Models Overview - Supply Chain AI{% endblock %}
+
+{% block extra_head %}
+<style>
+    .model-card {
+        transition: all 0.3s;
+        border-left: 4px solid #3b82f6;
+    }
+    .model-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .model-card.classification { border-left-color: #10b981; }
+    .model-card.regression { border-left-color: #f59e0b; }
+    .model-card.reinforcement_learning { border-left-color: #8b5cf6; }
+    .model-card.simulation { border-left-color: #ef4444; }
+    .model-card.cognitive { border-left-color: #06b6d4; }
+    .model-card.online_learning { border-left-color: #6366f1; }
+    
+    .metric-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    .metric-good { background-color: #d1fae5; color: #065f46; }
+    .metric-warning { background-color: #fef3c7; color: #92400e; }
+    .metric-poor { background-color: #fee2e2; color: #991b1b; }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    .status-deployed { background-color: #d1fae5; color: #065f46; }
+    .status-analytics { background-color: #dbeafe; color: #1e40af; }
+    .status-development { background-color: #fef3c7; color: #92400e; }
+    .status-not_trained { background-color: #fee2e2; color: #991b1b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🤖 AI Models Overview</h1>
+            <p class="text-gray-600">Tổng quan tất cả các mô hình AI trong hệ thống</p>
+        </div>
+        <div class="text-right">
+            <div class="text-2xl font-bold text-blue-600">{{ total_models }}</div>
+            <div class="text-sm text-gray-500">Total Models</div>
+        </div>
+    </div>
+    
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+        <div class="bg-green-50 p-4 rounded-lg">
+            <div class="text-sm text-gray-600">Deployed</div>
+            <div class="text-2xl font-bold text-green-600">{{ deployed_count }}</div>
+        </div>
+        <div class="bg-blue-50 p-4 rounded-lg">
+            <div class="text-sm text-gray-600">Analytics</div>
+            <div class="text-2xl font-bold text-blue-600">{{ analytics_count }}</div>
+        </div>
+        <div class="bg-yellow-50 p-4 rounded-lg">
+            <div class="text-sm text-gray-600">Development</div>
+            <div class="text-2xl font-bold text-yellow-600">{{ models_by_status.development|length }}</div>
+        </div>
+        <div class="bg-red-50 p-4 rounded-lg">
+            <div class="text-sm text-gray-600">Not Trained</div>
+            <div class="text-2xl font-bold text-red-600">{{ models_by_status.not_trained|length }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-bold mb-4">🔍 Lọc Models</h2>
+    <div class="flex flex-wrap gap-4">
+        <button onclick="filterModels('all')" class="filter-btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+            Tất cả
+        </button>
+        <button onclick="filterModels('classification')" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
+            Classification
+        </button>
+        <button onclick="filterModels('regression')" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
+            Regression
+        </button>
+        <button onclick="filterModels('simulation')" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
+            Simulation
+        </button>
+        <button onclick="filterModels('cognitive')" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
+            Cognitive
+        </button>
+    </div>
+</div>
+
+<!-- Models Grid -->
+<div id="models-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for model in all_models %}
+    <div class="model-card {{ model.type.value }} bg-white border border-gray-200 rounded-lg p-6" data-type="{{ model.type.value }}">
+        <!-- Header -->
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex-1">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">{{ model.display_name }}</h3>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="status-badge status-{{ model.status.value }}">
+                        {% if model.status.value == 'deployed' %}✅ Deployed
+                        {% elif model.status.value == 'analytics' %}📊 Analytics
+                        {% elif model.status.value == 'development' %}🚧 Development
+                        {% else %}⚠️ Not Trained{% endif %}
+                    </span>
+                    <span class="text-xs text-gray-500">{{ model.type.value }}</span>
+                </div>
+            </div>
+            {% if model_files_status[model.id] %}
+            <div class="text-green-600 text-2xl">✓</div>
+            {% else %}
+            <div class="text-gray-400 text-2xl">○</div>
+            {% endif %}
+        </div>
+        
+        <!-- Description -->
+        <p class="text-gray-600 text-sm mb-4">{{ model.description[:150] }}{% if model.description|length > 150 %}...{% endif %}</p>
+        
+        <!-- Metrics -->
+        <div class="mb-4">
+            <div class="text-sm font-semibold text-gray-700 mb-2">Metrics:</div>
+            <div class="flex flex-wrap gap-2">
+                {% for metric in model.metrics[:3] %}
+                <span class="metric-badge metric-good">
+                    {{ metric.name }}: {% if metric.target %}< {{ metric.target }}{{ metric.unit }}{% else %}N/A{% endif %}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <a href="/dashboard/ai/{{ model.id }}" 
+               class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-center text-sm">
+                Chi tiết
+            </a>
+            {% if model.api_endpoint %}
+            <a href="/dashboard/ai/{{ model.id }}#predict" 
+               class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-center text-sm">
+                Thử dự đoán
+            </a>
+            {% endif %}
+        </div>
+        
+        <!-- Links -->
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <div class="flex items-center justify-between text-xs text-gray-500">
+                <span>Version: {{ model.version }}</span>
+                {% if model.docs_path %}
+                <a href="/{{ model.docs_path }}" target="_blank" class="text-blue-600 hover:underline">
+                    📖 Docs
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Empty State -->
+<div id="empty-state" class="hidden bg-white rounded-lg shadow-md p-12 text-center">
+    <div class="text-6xl mb-4">🔍</div>
+    <h3 class="text-2xl font-bold text-gray-800 mb-2">Không tìm thấy models</h3>
+    <p class="text-gray-600">Thử chọn bộ lọc khác</p>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Filter models by type
+function filterModels(type) {
+    const models = document.querySelectorAll('.model-card');
+    const emptyState = document.getElementById('empty-state');
+    let visibleCount = 0;
+    
+    models.forEach(model => {
+        if (type === 'all' || model.dataset.type === type) {
+            model.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            model.classList.add('hidden');
+        }
+    });
+    
+    // Update filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    event.target.classList.remove('bg-gray-200', 'text-gray-700');
+    event.target.classList.add('bg-blue-600', 'text-white');
+    
+    // Show/hide empty state
+    if (visibleCount === 0) {
+        emptyState.classList.remove('hidden');
+    } else {
+        emptyState.classList.add('hidden');
+    }
+}
+</script>
+{% endblock %}
+

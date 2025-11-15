@@ -1,0 +1,475 @@
+﻿{% extends "base.html" %}
+
+{% block title %}{{ model.display_name }} - AI Model Detail{% endblock %}
+
+{% block extra_head %}
+<style>
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+    }
+    .form-section {
+        background-color: #f9fafb;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+    .prediction-result {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin: 1rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="mb-4">
+    <nav class="text-sm text-gray-600">
+        <a href="/dashboard" class="hover:text-blue-600">Dashboard</a> / 
+        <a href="/dashboard/ai" class="hover:text-blue-600">AI Models</a> / 
+        <span class="text-gray-800 font-semibold">{{ model.display_name }}</span>
+    </nav>
+</div>
+
+<!-- Header -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex items-start justify-between">
+        <div class="flex-1">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ model.display_name }}</h1>
+            <div class="flex items-center gap-3 mb-4">
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                    {{ model.type.value|upper }}
+                </span>
+                <span class="px-3 py-1 {% if model.status.value == 'deployed' %}bg-green-100 text-green-800{% elif model.status.value == 'analytics' %}bg-blue-100 text-blue-800{% else %}bg-yellow-100 text-yellow-800{% endif %} rounded-full text-sm font-semibold">
+                    {% if model.status.value == 'deployed' %}✅ Deployed
+                    {% elif model.status.value == 'analytics' %}📊 Analytics
+                    {% else %}🚧 Development{% endif %}
+                </span>
+                <span class="text-sm text-gray-500">Version: {{ model.version }}</span>
+            </div>
+            <p class="text-gray-700">{{ model.description }}</p>
+        </div>
+        {% if model.docs_path %}
+        <a href="/{{ model.docs_path }}" target="_blank" 
+           class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
+            📖 Xem Documentation
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="bg-white rounded-lg shadow-md mb-6">
+    <div class="border-b border-gray-200">
+        <nav class="flex -mb-px">
+            <button onclick="showTab('overview')" id="tab-overview" 
+                    class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-blue-600 text-blue-600">
+                Tổng quan
+            </button>
+            <button onclick="showTab('metrics')" id="tab-metrics" 
+                    class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                Metrics & Đánh giá
+            </button>
+            {% if model.api_endpoint %}
+            <button onclick="showTab('predict')" id="tab-predict" 
+                    class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                Thử dự đoán
+            </button>
+            {% endif %}
+            <button onclick="showTab('explain')" id="tab-explain" 
+                    class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                Giải thích
+            </button>
+        </nav>
+    </div>
+</div>
+
+<!-- Tab Content -->
+<div id="tab-content">
+    <!-- Overview Tab -->
+    <div id="content-overview" class="tab-content">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Model Info -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold mb-4">📋 Thông tin Mô hình</h2>
+                <table class="w-full text-sm">
+                    <tr class="border-b">
+                        <td class="py-2 font-semibold text-gray-700">Loại mô hình:</td>
+                        <td class="py-2 text-gray-600">{{ model.type.value|title }}</td>
+                    </tr>
+                    <tr class="border-b">
+                        <td class="py-2 font-semibold text-gray-700">Trạng thái:</td>
+                        <td class="py-2 text-gray-600">
+                            {% if model.status.value == 'deployed' %}✅ Đang hoạt động
+                            {% elif model.status.value == 'analytics' %}📊 Dùng trong phân tích
+                            {% else %}🚧 Đang phát triển{% endif %}
+                        </td>
+                    </tr>
+                    <tr class="border-b">
+                        <td class="py-2 font-semibold text-gray-700">Dataset:</td>
+                        <td class="py-2 text-gray-600">{{ model.dataset_info or "N/A" }}</td>
+                    </tr>
+                    <tr class="border-b">
+                        <td class="py-2 font-semibold text-gray-700">Model File:</td>
+                        <td class="py-2 text-gray-600">
+                            {% if model_file_exists %}
+                            <span class="text-green-600">✓ {{ model_file_path }}</span>
+                            {% else %}
+                            <span class="text-red-600">✗ Không tìm thấy</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if model.last_trained %}
+                    <tr class="border-b">
+                        <td class="py-2 font-semibold text-gray-700">Lần train gần nhất:</td>
+                        <td class="py-2 text-gray-600">{{ model.last_trained }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if model.api_endpoint %}
+                    <tr>
+                        <td class="py-2 font-semibold text-gray-700">API Endpoint:</td>
+                        <td class="py-2 text-gray-600">
+                            <code class="bg-gray-100 px-2 py-1 rounded">{{ model.api_endpoint }}</code>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+            
+            <!-- Quick Metrics -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold mb-4">📊 Metrics Chính</h2>
+                <div class="space-y-4">
+                    {% for metric in model.metrics %}
+                    <div class="metric-card">
+                        <div class="text-sm opacity-90 mb-1">{{ metric.name }}</div>
+                        <div class="metric-value">
+                            {% if metric.value is not none %}
+                            {{ "%.4f"|format(metric.value) }}{{ metric.unit }}
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </div>
+                        {% if metric.target %}
+                        <div class="text-sm opacity-75 mt-2">Target: < {{ metric.target }}{{ metric.unit }}</div>
+                        {% endif %}
+                        {% if metric.description %}
+                        <div class="text-xs opacity-60 mt-1">{{ metric.description }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Metrics Tab -->
+    <div id="content-metrics" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">📈 Chi tiết Metrics</h2>
+            
+            <!-- Metrics Table -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Metric</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giá trị</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Target</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mô tả</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for metric in model.metrics %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ metric.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {% if metric.value is not none %}
+                                <span class="font-semibold">{{ "%.4f"|format(metric.value) }}{{ metric.unit }}</span>
+                                {% else %}
+                                <span class="text-gray-400">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {% if metric.target %}
+                                < {{ metric.target }}{{ metric.unit }}
+                                {% else %}
+                                <span class="text-gray-400">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">{{ metric.description or "-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Charts Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4">📊 Biểu đồ Đánh giá</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {% for chart_type in model.chart_types %}
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-semibold mb-2">{{ chart_type|replace("_", " ")|title }}</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-{{ chart_type }}"></canvas>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">Chart sẽ được load từ results/ hoặc API</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Predict Tab -->
+    {% if model.api_endpoint %}
+    <div id="content-predict" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">🎯 Thử Dự Đoán</h2>
+            <p class="text-gray-600 mb-6">Nhập thông tin để thử dự đoán với mô hình này.</p>
+            
+            <!-- Prediction Form -->
+            <form id="prediction-form" class="form-section">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for field in form_fields %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ field.label }}
+                            {% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {% if field.type == "select" %}
+                        <select name="{{ field.name }}" 
+                                class="w-full border border-gray-300 rounded-md px-3 py-2"
+                                {% if field.required %}required{% endif %}>
+                            {% for option in field.options %}
+                            <option value="{{ option }}" {% if option == field.default|string %}selected{% endif %}>{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                        {% elif field.type == "number" %}
+                        <input type="number" name="{{ field.name }}" 
+                               value="{{ field.default }}" 
+                               step="0.01"
+                               class="w-full border border-gray-300 rounded-md px-3 py-2"
+                               {% if field.required %}required{% endif %}>
+                        {% else %}
+                        <input type="{{ field.type }}" name="{{ field.name }}" 
+                               value="{{ field.default }}" 
+                               class="w-full border border-gray-300 rounded-md px-3 py-2"
+                               {% if field.required %}required{% endif %}>
+                        {% endif %}
+                        {% if field.description %}
+                        <p class="text-xs text-gray-500 mt-1">{{ field.description }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="mt-6">
+                    <button type="submit" 
+                            class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                        🔮 Dự Đoán
+                    </button>
+                    <button type="button" onclick="resetForm()" 
+                            class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 font-semibold ml-2">
+                        Đặt lại
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Prediction Result -->
+            <div id="prediction-result" class="hidden"></div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Explain Tab -->
+    <div id="content-explain" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4">💡 Giải thích Mô hình</h2>
+            
+            <div class="prose max-w-none">
+                <h3>Mục đích</h3>
+                <p>{{ model.description }}</p>
+                
+                <h3>Cách sử dụng kết quả</h3>
+                <p>Kết quả từ mô hình này có thể được sử dụng để:</p>
+                <ul>
+                    {% if model.type.value == "classification" %}
+                    <li>Phân loại và đưa ra quyết định dựa trên xác suất dự đoán</li>
+                    <li>Ưu tiên xử lý các trường hợp có xác suất cao</li>
+                    {% elif model.type.value == "regression" %}
+                    <li>Lập kế hoạch dựa trên dự báo</li>
+                    <li>Tối ưu hóa inventory và resources</li>
+                    {% elif model.type.value == "simulation" %}
+                    <li>Phân tích scenarios và what-if analysis</li>
+                    <li>Đánh giá rủi ro và lập kế hoạch</li>
+                    {% endif %}
+                </ul>
+                
+                <h3>Feature quan trọng</h3>
+                <p>Mô hình này sử dụng các features quan trọng sau:</p>
+                <ul>
+                    {% for field in form_fields[:5] %}
+                    <li><strong>{{ field.label }}:</strong> {{ field.description or "Feature quan trọng" }}</li>
+                    {% endfor %}
+                </ul>
+                
+                <h3>Limitations</h3>
+                <ul>
+                    <li>Model được train trên historical data, có thể không chính xác với data mới</li>
+                    <li>Performance có thể giảm theo thời gian do data drift</li>
+                    <li>Cần retrain định kỳ (khuyến nghị: weekly hoặc monthly)</li>
+                </ul>
+                
+                {% if model.docs_path %}
+                <p class="mt-4">
+                    <a href="/{{ model.docs_path }}" target="_blank" 
+                       class="text-blue-600 hover:underline">
+                        📖 Xem documentation chi tiết
+                    </a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const MODEL_ID = "{{ model.id }}";
+const API_ENDPOINT = "{{ model.api_endpoint }}";
+const MODEL_TYPE = "{{ model.type.value }}";
+
+// Tab switching
+function showTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.add('hidden');
+    });
+    
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-blue-600', 'text-blue-600');
+        btn.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // Show selected tab
+    document.getElementById(`content-${tabName}`).classList.remove('hidden');
+    
+    // Add active class to button
+    const btn = document.getElementById(`tab-${tabName}`);
+    btn.classList.remove('border-transparent', 'text-gray-500');
+    btn.classList.add('border-blue-600', 'text-blue-600');
+}
+
+// Prediction form
+document.getElementById('prediction-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const payload = {};
+    formData.forEach((value, key) => {
+        // Convert to number if possible
+        if (!isNaN(value) && value !== '') {
+            payload[key] = parseFloat(value);
+        } else {
+            payload[key] = value;
+        }
+    });
+    
+    // Show loading
+    const resultDiv = document.getElementById('prediction-result');
+    resultDiv.classList.remove('hidden');
+    resultDiv.innerHTML = '<div class="prediction-result"><p>Đang xử lý...</p></div>';
+    
+    try {
+        const response = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            displayPredictionResult(data.prediction);
+        } else {
+            throw new Error(data.message || 'Prediction failed');
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                <p><strong>Lỗi:</strong> ${error.message}</p>
+            </div>
+        `;
+    }
+});
+
+// Display prediction result
+function displayPredictionResult(prediction) {
+    const resultDiv = document.getElementById('prediction-result');
+    
+    let html = '<div class="prediction-result">';
+    html += '<h3 class="text-xl font-bold mb-4">Kết quả Dự đoán</h3>';
+    
+    if (MODEL_TYPE === 'classification') {
+        const prob = prediction.late_risk_prob !== undefined ? prediction.late_risk_prob : prediction.churn_prob;
+        const label = prediction.late_risk_label !== undefined ? prediction.late_risk_label : prediction.churn_label;
+        
+        html += `<div class="mb-4">
+            <div class="text-3xl font-bold mb-2">${(prob * 100).toFixed(2)}%</div>
+            <div class="text-sm opacity-90">Xác suất: ${label === 1 ? 'Có' : 'Không'}</div>
+        </div>`;
+        
+        if (prediction.top_features) {
+            html += '<div class="mt-4"><h4 class="font-semibold mb-2">Top Features:</h4><ul>';
+            prediction.top_features.forEach(f => {
+                html += `<li>${f.feature}: ${(f.importance * 100).toFixed(2)}%</li>`;
+            });
+            html += '</ul></div>';
+        }
+    } else if (MODEL_TYPE === 'regression') {
+        html += `<div class="mb-4">
+            <div class="text-3xl font-bold mb-2">$${prediction.forecasted_revenue?.toLocaleString() || 'N/A'}</div>
+            <div class="text-sm opacity-90">Dự báo doanh thu</div>
+        </div>`;
+        
+        if (prediction.confidence_range) {
+            html += `<div class="mt-4">
+                <h4 class="font-semibold mb-2">Khoảng tin cậy:</h4>
+                <p>Lower: $${prediction.confidence_range.lower?.toLocaleString()}</p>
+                <p>Upper: $${prediction.confidence_range.upper?.toLocaleString()}</p>
+            </div>`;
+        }
+    }
+    
+    html += '</div>';
+    resultDiv.innerHTML = html;
+}
+
+// Reset form
+function resetForm() {
+    document.getElementById('prediction-form').reset();
+    document.getElementById('prediction-result').classList.add('hidden');
+}
+
+// Initialize
+showTab('overview');
+</script>
+{% endblock %}
+

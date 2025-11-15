@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Revenue Forecast - ML Models{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">📈 Revenue Forecast</h1>
+        <p class="text-gray-600">Dự báo doanh thu theo thời gian, khu vực và danh mục</p>
+    </div>
+
+    <!-- Prediction Form -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4">📝 Nhập thông tin dự báo</h2>
+        
+        <form id="prediction-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Region/Country</label>
+                <input type="text" id="region" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., United States">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <input type="text" id="category" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Optional">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Forecast Date</label>
+                <input type="date" id="forecast_date" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            
+            <!-- Lag Features -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Revenue (7 days ago)</label>
+                <input type="number" id="revenue_lag_7d" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="$" step="0.01">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Revenue (30 days ago)</label>
+                <input type="number" id="revenue_lag_30d" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="$" step="0.01">
+            </div>
+            
+            <!-- Rolling Stats -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Revenue 7-day Average</label>
+                <input type="number" id="revenue_7d_avg" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="$" step="0.01">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Revenue 30-day Average</label>
+                <input type="number" id="revenue_30d_avg" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="$" step="0.01">
+            </div>
+            
+            <!-- Time Features -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Month (1-12)</label>
+                <input type="number" id="month" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1-12" min="1" max="12">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Day of Week (0-6)</label>
+                <input type="number" id="day_of_week" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="0-6" min="0" max="6">
+            </div>
+            
+            <!-- Weather -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Temperature (°C)</label>
+                <input type="number" id="temperature" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="°C" step="0.1">
+            </div>
+        </form>
+        
+        <div class="mt-6">
+            <button id="btn-predict" class="bg-blue-600 text-white px-8 py-3 rounded-md hover:bg-blue-700 font-semibold">
+                🔮 Dự báo
+            </button>
+            <button id="btn-reset" class="bg-gray-500 text-white px-8 py-3 rounded-md hover:bg-gray-600 ml-2">
+                🔄 Đặt lại
+            </button>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-section" class="bg-white rounded-lg shadow-md p-6 hidden">
+        <h2 class="text-xl font-bold mb-4">📊 Kết quả dự báo</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-8">
+                <p class="text-sm opacity-90 mb-2">Doanh thu dự báo</p>
+                <p class="text-4xl font-bold" id="forecasted-revenue">-</p>
+                <p class="text-sm mt-2 opacity-90">Forecasted Revenue</p>
+            </div>
+            
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-8">
+                <p class="text-sm opacity-90 mb-2">Khoảng tin cậy</p>
+                <p class="text-2xl font-bold" id="confidence-range">-</p>
+                <p class="text-sm mt-2 opacity-90">Confidence Interval</p>
+            </div>
+        </div>
+        
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 class="text-lg font-semibold mb-3">ℹ️ Thông tin bổ sung</h3>
+            <div id="additional-info" class="space-y-2 text-gray-700"></div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-700">Đang xử lý dự báo...</p>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="error-toast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg z-50 hidden">
+        <div class="flex items-center justify-between">
+            <span id="error-message"></span>
+            <button onclick="document.getElementById('error-toast').classList.add('hidden')" class="ml-4 text-white hover:text-gray-200">✕</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('btn-predict').addEventListener('click', async function() {
+    const form = document.getElementById('prediction-form');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const resultsSection = document.getElementById('results-section');
+    const errorToast = document.getElementById('error-toast');
+    
+    // Collect form data
+    const payload = {};
+    const inputs = form.querySelectorAll('input');
+    inputs.forEach(input => {
+        if (input.value && input.value.trim() !== '') {
+            const key = input.id;
+            let value = input.value;
+            
+            if (input.type === 'number') {
+                value = parseFloat(value);
+            } else if (input.type === 'date') {
+                // Keep as string
+            }
+            
+            payload[key] = value;
+        }
+    });
+    
+    // Show loading
+    loadingOverlay.classList.remove('hidden');
+    resultsSection.classList.add('hidden');
+    errorToast.classList.add('hidden');
+    
+    try {
+        const response = await fetch('/ml/revenue/forecast', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.status === 'success') {
+            const prediction = data.prediction;
+            
+            // Display results
+            const forecasted = prediction.forecasted_revenue || 0;
+            const lower = prediction.confidence_range?.lower || forecasted * 0.9;
+            const upper = prediction.confidence_range?.upper || forecasted * 1.1;
+            
+            document.getElementById('forecasted-revenue').textContent = '$' + forecasted.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('confidence-range').textContent = '$' + lower.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' - $' + upper.toLocaleString('en-US', {minimumFractionDigits: 2});
+            
+            // Additional info
+            const infoDiv = document.getElementById('additional-info');
+            infoDiv.innerHTML = `
+                <p><strong>Region:</strong> ${payload.region || 'N/A'}</p>
+                <p><strong>Category:</strong> ${payload.category || 'N/A'}</p>
+                <p><strong>Forecast Date:</strong> ${payload.forecast_date || 'N/A'}</p>
+            `;
+            
+            resultsSection.classList.remove('hidden');
+        } else {
+            throw new Error(data.detail || 'Forecast failed');
+        }
+    } catch (error) {
+        document.getElementById('error-message').textContent = 'Lỗi: ' + error.message;
+        errorToast.classList.remove('hidden');
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
+document.getElementById('btn-reset').addEventListener('click', function() {
+    const form = document.getElementById('prediction-form');
+    form.reset();
+    document.getElementById('results-section').classList.add('hidden');
+});
+</script>
+{% endblock %}
+
