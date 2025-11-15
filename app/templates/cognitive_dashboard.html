@@ -33,10 +33,11 @@
     'daily_runs': 48,
     'pending_actions': 5
 } %}
+{% set summary_context = summary if summary is defined and summary else summary_fallback %}
 {% set fallback_models = [
-    {'name': 'Late Delivery Classifier', 'version': 'v9.1', 'owner': 'Ops Team', 'status': 'success', 'accuracy': '92%', 'updated_at': '15/11 08:05'},
-    {'name': 'Demand Forecast Ensemble', 'version': 'v7.4', 'owner': 'Forecast Squad', 'status': 'warn', 'accuracy': '88%', 'updated_at': '15/11 07:30'},
-    {'name': 'Inventory Optimizer RL', 'version': 'v5.2', 'owner': 'Warehouse AI', 'status': 'error', 'accuracy': '85%', 'updated_at': '14/11 23:10'}
+    {'name': 'Late Delivery Classifier', 'version': 'v9.1', 'owner': 'Ops Team', 'status': 'success', 'accuracy': '92%', 'updated_at': '15/11 08:05', 'note': 'Fallback data', 'dataset_version': 'merged_global', 'used_in_pipeline': True, 'last_inference_call': None, 'warnings_count': 0, 'last_warning': None},
+    {'name': 'Demand Forecast Ensemble', 'version': 'v7.4', 'owner': 'Forecast Squad', 'status': 'success', 'accuracy': '88%', 'updated_at': '15/11 07:30', 'note': 'Fallback data', 'dataset_version': 'merged_global', 'used_in_pipeline': True, 'last_inference_call': None, 'warnings_count': 0, 'last_warning': None},
+    {'name': 'Inventory Optimizer RL', 'version': 'v5.2', 'owner': 'Warehouse AI', 'status': 'success', 'accuracy': '85%', 'updated_at': '14/11 23:10', 'note': 'Fallback data', 'dataset_version': 'merged_global', 'used_in_pipeline': True, 'last_inference_call': None, 'warnings_count': 0, 'last_warning': None}
 ] %}
 {% set fallback_logs = [
     {'time': '08:31', 'level': 'Cảnh báo', 'message': 'Tồn kho kho HCM giảm 18%, đề nghị kiểm tra dự báo.'},
@@ -154,22 +155,22 @@
 <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
     <div class="glass-card p-5">
         <p class="text-sm text-slate-500 mb-1">Mô hình đang hoạt động</p>
-        <p id="summary-active" class="text-3xl font-semibold text-slate-900">{{ summary.active_models }}</p>
+        <p id="summary-active" class="text-3xl font-semibold text-slate-900">{{ summary_context.active_models }}</p>
         <p class="text-xs text-slate-400 mt-1">Triển khai production</p>
     </div>
     <div class="glass-card p-5">
         <p class="text-sm text-slate-500 mb-1">Độ chính xác TB</p>
-        <p id="summary-accuracy" class="text-3xl font-semibold text-emerald-600">{{ summary.avg_accuracy }}</p>
+        <p id="summary-accuracy" class="text-3xl font-semibold text-emerald-600">{{ summary_context.avg_accuracy }}</p>
         <p class="text-xs text-slate-400 mt-1">Chu kỳ huấn luyện mới nhất</p>
     </div>
     <div class="glass-card p-5">
         <p class="text-sm text-slate-500 mb-1">Số phiên chạy hôm nay</p>
-        <p id="summary-runs" class="text-3xl font-semibold text-slate-900">{{ summary.daily_runs }}</p>
+        <p id="summary-runs" class="text-3xl font-semibold text-slate-900">{{ summary_context.daily_runs }}</p>
         <p class="text-xs text-slate-400 mt-1">Inference + retraining</p>
     </div>
     <div class="glass-card p-5">
         <p class="text-sm text-slate-500 mb-1">Hành động đang chờ</p>
-        <p id="summary-pending" class="text-3xl font-semibold text-amber-500">{{ summary.pending_actions }}</p>
+        <p id="summary-pending" class="text-3xl font-semibold text-amber-500">{{ summary_context.pending_actions }}</p>
         <p class="text-xs text-slate-400 mt-1">Cần phê duyệt</p>
     </div>
 </section>
@@ -264,23 +265,39 @@
                 <tr class="text-left text-slate-400">
                     <th class="pb-3 pr-4 font-medium">Mô hình</th>
                     <th class="pb-3 pr-4 font-medium">Phiên bản</th>
-                    <th class="pb-3 pr-4 font-medium">Chủ sở hữu</th>
+                    <th class="pb-3 pr-4 font-medium">Dataset</th>
                     <th class="pb-3 pr-4 font-medium">Độ chính xác</th>
-                    <th class="pb-3 pr-4 font-medium">Cập nhật</th>
+                    <th class="pb-3 pr-4 font-medium">Đã dùng</th>
+                    <th class="pb-3 pr-4 font-medium">Inference</th>
+                    <th class="pb-3 pr-4 font-medium">Warnings</th>
                     <th class="pb-3 font-medium">Trạng thái</th>
                 </tr>
             </thead>
             <tbody id="model-rows" class="divide-y divide-slate-100">
                 {% for model in model_list %}
                 {% set badge_style = status_color_map.get(model.status|lower, status_color_map['default']) %}
+                {% set warning_title = '' %}
+                {% if model.last_warning %}
+                    {% set warning_title = 'Last warning: ' ~ model.last_warning.issue ~ ' (' ~ model.last_warning.severity ~ ')' %}
+                {% endif %}
                 <tr class="text-slate-600">
-                    <td class="py-3 pr-4 font-medium text-slate-900">{{ model.name }}</td>
+                    <td class="py-3 pr-4 font-medium text-slate-900">
+                        {{ model.name }}
+                        <p class="text-xs text-slate-400">{{ model.owner }}</p>
+                    </td>
                     <td class="py-3 pr-4">{{ model.version }}</td>
-                    <td class="py-3 pr-4">{{ model.owner }}</td>
+                    <td class="py-3 pr-4">{{ model.dataset_version or 'N/A' }}</td>
                     <td class="py-3 pr-4">{{ model.accuracy }}</td>
-                    <td class="py-3 pr-4">{{ model.updated_at }}</td>
+                    <td class="py-3 pr-4">
+                        <span class="inline-flex items-center gap-1 text-xs font-semibold">
+                            <span class="h-2 w-2 rounded-full {{ 'bg-emerald-500' if model.used_in_pipeline else 'bg-slate-400' }}"></span>
+                            {{ 'Đã dùng' if model.used_in_pipeline else 'Chưa dùng' }}
+                        </span>
+                    </td>
+                    <td class="py-3 pr-4">{{ model.last_inference_call or '—' }}</td>
+                    <td class="py-3 pr-4">{{ model.warnings_count }}</td>
                     <td class="py-3">
-                        <span class="px-3 py-1 rounded-full text-xs font-semibold {{ badge_style }}">{{ model.status|title }}</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold {{ badge_style }}" title="{{ (model.note or '') ~ (warning_title and (' | ' ~ warning_title)) }}">{{ model.status|title }}</span>
                     </td>
                 </tr>
                 {% endfor %}
@@ -357,7 +374,7 @@
 <script>
 (() => {
     const initialState = {
-        summary: {{ summary|default(summary_fallback, true)|tojson }},
+        summary: {{ summary_context|tojson }},
         models: {{ model_list|default(fallback_models, true)|tojson }},
         logs: {{ log_items|default(fallback_logs, true)|tojson }},
         strategies: {{ strategy_cards|default(fallback_strategies, true)|tojson }},
@@ -400,6 +417,22 @@
             failed: "bg-rose-50 text-rose-600"
         };
         return map[status?.toLowerCase()] || "bg-slate-100 text-slate-600";
+    };
+
+    const noteTooltip = (note) => {
+        if (!note) return "";
+        return (note || "").replace(/"/g, "&quot;");
+    };
+
+    const statusTitle = (model = {}) => {
+        const pieces = [];
+        if (model.note) {
+            pieces.push(model.note);
+        }
+        if (model.last_warning?.issue) {
+            pieces.push(`Last warning: ${model.last_warning.issue} (${model.last_warning.severity || 'n/a'})`);
+        }
+        return pieces.join(" | ");
     };
 
     const showToast = (message, mode = 'success') => {
@@ -471,13 +504,23 @@
         if (!elems.modelRows) return;
         elems.modelRows.innerHTML = models.map(model => `
             <tr class="text-slate-600">
-                <td class="py-3 pr-4 font-medium text-slate-900">${model.name}</td>
-                <td class="py-3 pr-4">${model.version}</td>
-                <td class="py-3 pr-4">${model.owner}</td>
-                <td class="py-3 pr-4">${model.accuracy}</td>
-                <td class="py-3 pr-4">${model.updated_at}</td>
+                <td class="py-3 pr-4 font-medium text-slate-900">
+                    ${model.name}
+                    <p class="text-xs text-slate-400">${model.owner || ''}</p>
+                </td>
+                <td class="py-3 pr-4">${model.version || 'N/A'}</td>
+                <td class="py-3 pr-4">${model.dataset_version || 'N/A'}</td>
+                <td class="py-3 pr-4">${model.accuracy || '—'}</td>
+                <td class="py-3 pr-4">
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold">
+                        <span class="h-2 w-2 rounded-full ${model.used_in_pipeline ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
+                        ${model.used_in_pipeline ? 'Đã dùng' : 'Chưa dùng'}
+                    </span>
+                </td>
+                <td class="py-3 pr-4">${model.last_inference_call || '—'}</td>
+                <td class="py-3 pr-4">${model.warnings_count ?? 0}</td>
                 <td class="py-3">
-                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusBadge(model.status)}">${(model.status || '').charAt(0).toUpperCase() + (model.status || '').slice(1)}</span>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusBadge(model.status)}" title="${statusTitle(model)}">${(model.status || '').charAt(0).toUpperCase() + (model.status || '').slice(1)}</span>
                 </td>
             </tr>
         `).join('');

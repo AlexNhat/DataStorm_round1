@@ -1,0 +1,53 @@
+﻿{% extends "base.html" %}
+{% import "components/chart_block.html" as charts %}
+{% import "components/card.html" as card %}
+
+{% block title %}Delivery Metrics{% endblock %}
+
+{% block content %}
+<section class="ui-card mb-6">
+    <a href="/dashboard/metrics" class="text-sm text-blue-600 hover:underline flex items-center gap-2">
+        <i class="fa-solid fa-arrow-left"></i> Back to metrics overview
+    </a>
+    <div class="mt-4">
+        <p class="text-xs uppercase tracking-[0.35em] text-slate-400 mb-2">Model Metrics</p>
+        <h1 class="text-3xl font-semibold text-slate-900">Late Delivery Classifier</h1>
+        <p class="text-sm text-slate-500">Region-level risk and precision/recall for the global classifier.</p>
+    </div>
+</section>
+
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {{ charts.chart_block('Region delay index', 'deliveryRegionPerformance', 'Average delay risk by macro region.') }}
+    <div class="ui-card">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Key metrics</h2>
+        <dl class="grid grid-cols-2 gap-4 text-sm text-slate-600">
+            <div><dt class="uppercase text-xs text-slate-400">Accuracy</dt><dd class="text-xl font-semibold text-slate-900">{{ summary.late_delivery.accuracy }}</dd></div>
+            <div><dt class="uppercase text-xs text-slate-400">F1</dt><dd class="text-xl font-semibold text-slate-900">{{ summary.late_delivery.f1 }}</dd></div>
+            <div><dt class="uppercase text-xs text-slate-400">Precision</dt><dd class="text-xl font-semibold text-slate-900">{{ summary.late_delivery.precision }}</dd></div>
+            <div><dt class="uppercase text-xs text-slate-400">Recall</dt><dd class="text-xl font-semibold text-slate-900">{{ summary.late_delivery.recall }}</dd></div>
+        </dl>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script>
+const summary = {{ summary | tojson }};
+const deliveryEl = document.getElementById('deliveryRegionPerformance');
+if (deliveryEl) {
+    new Chart(deliveryEl, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(summary.late_delivery.region_delay),
+            datasets: [{
+                label: 'Delay risk',
+                data: Object.values(summary.late_delivery.region_delay),
+                backgroundColor: '#f43f5e'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,110 @@
+[
+    {
+        "name": "Inventory Optimizer RL",
+        "version": "v5.3",
+        "owner": "Warehouse AI",
+        "region": "GLOBAL",
+        "accuracy": 0.9988,
+        "last_update": "2025-11-15T05:57:43Z",
+        "status": "Success",
+        "note": "Updated using global merged supplychain-weather dataset. Fixed previous EU weather timeout.",
+        "dataset_version": "supplychain_weather_merged_global.csv",
+        "used_in_pipeline": true,
+        "last_inference_call": "2025-11-15T05:58:24Z",
+        "total_inference_calls": 1,
+        "last_warning": {
+            "timestamp": "2025-11-15T05:58:18Z",
+            "issue": "RMSE at 0.0678 requires monitoring for APAC spikes",
+            "suggestion": "Increase exploration rate for APAC warehouses",
+            "severity": "medium"
+        },
+        "warnings_count": 1,
+        "artifacts": {
+            "model_path": "models/inventory_rl/global/inventory_rl_global.pkl",
+            "metrics_path": "results/metrics/inventory_rl_global.json",
+            "log_path": "results/logs/train_inventory_rl_global.log"
+        },
+        "last_training_run": "2025-11-15T05:57:43Z"
+    },
+    {
+        "name": "Demand Forecast Ensemble",
+        "version": "v7.5",
+        "owner": "Planning AI",
+        "region": "GLOBAL",
+        "accuracy": 0.79,
+        "last_update": "2025-11-15T05:57:52Z",
+        "status": "Success",
+        "note": "Updated using global merged supplychain-weather dataset. Fixed previous EU weather timeout.",
+        "dataset_version": "supplychain_weather_merged_global.csv",
+        "used_in_pipeline": true,
+        "last_inference_call": "2025-11-15T05:58:24Z",
+        "total_inference_calls": 1,
+        "last_warning": {
+            "timestamp": "2025-11-15T05:58:18Z",
+            "issue": "MAE 1026.323 detected on scope region",
+            "suggestion": "Re-run calibration for high-variance regions",
+            "severity": "medium"
+        },
+        "warnings_count": 2,
+        "artifacts": {
+            "model_path": "models/forecast/global/region_model/forecast.pkl",
+            "metrics_path": "results/metrics/forecast_global.json",
+            "log_path": "results/logs/forecast_global.log"
+        },
+        "last_training_run": "2025-11-15T05:57:52Z"
+    },
+    {
+        "name": "Late Delivery Classifier",
+        "version": "v4.2",
+        "owner": "Logistics Ops",
+        "region": "GLOBAL",
+        "accuracy": 0.9807,
+        "last_update": "2025-11-15T05:58:02Z",
+        "status": "Success",
+        "note": "Updated using global merged supplychain-weather dataset. Fixed previous EU weather timeout.",
+        "dataset_version": "supplychain_weather_merged_global.csv",
+        "used_in_pipeline": true,
+        "last_inference_call": "2025-11-15T05:58:24Z",
+        "total_inference_calls": 1,
+        "last_warning": {
+            "timestamp": "2025-11-15T05:58:18Z",
+            "issue": "F1 score at 0.994 for MENA routes",
+            "suggestion": "Refresh congestion features for the latest shipments",
+            "severity": "low"
+        },
+        "warnings_count": 1,
+        "artifacts": {
+            "model_path": "models/late_delivery/global/late_delivery_global.pkl",
+            "metrics_path": "results/metrics/late_delivery_global.json",
+            "log_path": "results/logs/late_delivery_global.log"
+        },
+        "last_training_run": "2025-11-15T05:58:02Z"
+    },
+    {
+        "name": "Pricing Elasticity Model",
+        "version": "v3.1",
+        "owner": "Revenue Lab",
+        "region": "GLOBAL",
+        "accuracy": 0.9853,
+        "last_update": "2025-11-15T05:58:11Z",
+        "status": "Success",
+        "note": "Updated using global merged supplychain-weather dataset. Fixed previous EU weather timeout.",
+        "dataset_version": "supplychain_weather_merged_global.csv",
+        "used_in_pipeline": true,
+        "last_inference_call": "2025-11-15T05:58:24Z",
+        "total_inference_calls": 1,
+        "last_warning": {
+            "timestamp": "2025-11-15T05:58:18Z",
+            "issue": "MAE 0.0161 observed for NA electronics segment",
+            "suggestion": "Tune alpha parameter and review promotion data",
+            "severity": "low"
+        },
+        "warnings_count": 1,
+        "artifacts": {
+            "model_path": "models/pricing/global/pricing_elasticity.pkl",
+            "metrics_path": "results/metrics/pricing_global.json",
+            "log_path": "results/logs/pricing_global.log"
+        },
+        "last_training_run": "2025-11-15T05:58:11Z"
+    }
+]

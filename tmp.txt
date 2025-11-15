@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}AI Strategy Center{% endblock %}
+{% block page_title %}AI Strategy & Models{% endblock %}
+
+{% block extra_head %}
+    {{ super() }}
+{% endblock extra_head %}
+
+{% block content %}
+{% set summary = ai_summary|default({'active_models': 12,'avg_accuracy': '93%','daily_runs': 48,'pending_actions': 5}) %}
+{% set default_models = [
+    {'name': 'Late Delivery Classifier', 'version': 'v9.1', 'owner': 'Ops Team', 'status': 'success', 'accuracy': '92%', 'updated_at': '2025-11-14 08:00'},
+    {'name': 'Demand Forecast Ensemble', 'version': 'v7.4', 'owner': 'Forecast Squad', 'status': 'warn', 'accuracy': '87%', 'updated_at': '2025-11-14 06:30'},
+    {'name': 'Inventory Optimizer RL', 'version': 'v5.2', 'owner': 'Warehouse AI', 'status': 'error', 'accuracy': '—', 'updated_at': '2025-11-13 23:10'}
+] %}
+{% set model_rows = models|default([]) %}
+{% set model_list = model_rows if model_rows else default_models %}
+{% set default_logs = [
+    {'time': '08:31', 'level': 'Warning', 'message': 'HCM warehouse stock dropped 18%. Please validate forecast.'},
+    {'time': '07:48', 'level': 'Info', 'message': 'Late Delivery model v9.1 retrained (F1=0.92).'},
+    {'time': '07:05', 'level': 'Error', 'message': 'Warehouse AI cannot sync EU weather data (API timeout).'}
+] %}
+{% set log_items = ai_logs|default(default_logs) %}
+
+<section class="glass-card p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+        <p class="text-xs uppercase tracking-[0.35em] text-slate-400 mb-2">Strategic Planner</p>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-1">AI Recommendation Center</h2>
+        <p class="text-sm text-slate-500">Monitor AI models, runs, alerts and trigger quick actions.</p>
+    </div>
+    <div class="flex flex-wrap gap-3 text-sm">
+        <button id="btn-refresh" class="rounded-2xl border border-slate-200 px-5 py-2 font-semibold text-slate-700 hover:bg-slate-50 transition">Refresh data</button>
+        <button id="btn-create-run" class="rounded-2xl bg-blue-600 px-6 py-2 font-semibold text-white shadow-lg shadow-blue-600/30 hover:bg-blue-500 transition">Start new run</button>
+    </div>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="glass-card p-5">
+        <p class="text-sm text-slate-500 mb-1">Active models</p>
+        <p id="summary-active" class="text-3xl font-semibold text-slate-900">{{ summary.active_models }}</p>
+        <p class="text-xs text-slate-400 mt-1">Live deployments</p>
+    </div>
+    <div class="glass-card p-5">
+        <p class="text-sm text-slate-500 mb-1">Average accuracy</p>
+        <p id="summary-accuracy" class="text-3xl font-semibold text-emerald-600">{{ summary.avg_accuracy }}</p>
+        <p class="text-xs text-slate-400 mt-1">Last training cycle</p>
+    </div>
+    <div class="glass-card p-5">
+        <p class="text-sm text-slate-500 mb-1">Runs today</p>
+        <p id="summary-runs" class="text-3xl font-semibold text-slate-900">{{ summary.daily_runs }}</p>
+        <p class="text-xs text-slate-400 mt-1">Inference & retrain</p>
+    </div>
+    <div class="glass-card p-5">
+        <p class="text-sm text-slate-500 mb-1">Pending actions</p>
+        <p id="summary-pending" class="text-3xl font-semibold text-amber-500">{{ summary.pending_actions }}</p>
+        <p class="text-xs text-slate-400 mt-1">Need approval</p>
+    </div>
+</section>
+
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="glass-card p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Accuracy trend</h3>
+                <p class="text-sm text-slate-500">7 day overview to detect drift.</p>
+            </div>
+            <span class="badge bg-emerald-50 text-emerald-600">Stable</span>
+        </div>
+        <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 h-64 flex items-center justify-center text-sm text-slate-400">Line chart placeholder</div>
+    </div>
+    <div class="glass-card p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">System load & cost</h3>
+                <p class="text-sm text-slate-500">Compare runs and cloud spend.</p>
+            </div>
+            <span class="badge bg-blue-50 text-blue-600">Realtime</span>
+        </div>
+        <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 h-64 flex items-center justify-center text-sm text-slate-400">Bar chart placeholder</div>
+    </div>
+</section>
+
+<section class="glass-card p-6 space-y-4">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-slate-900">Latest models</h3>
+            <p class="text-sm text-slate-500">Version, status and accuracy.</p>
+        </div>
+        <button class="text-sm text-blue-600 hover:text-blue-500">View all</button>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead class="text-left text-slate-400 border-b border-slate-200">
+                <tr>
+                    <th class="py-2">Model</th>
+                    <th class="py-2">Version</th>
+                    <th class="py-2">Owner</th>
+                    <th class="py-2">Accuracy</th>
+                    <th class="py-2">Updated</th>
+                    <th class="py-2 text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody id="model-table-body">
+                {% for model in model_list %}
+                <tr class="border-b border-slate-100 text-slate-700">
+                    <td class="py-2 font-semibold">{{ model.name }}</td>
+                    <td class="py-2">{{ model.version }}</td>
+                    <td class="py-2">{{ model.owner }}</td>
+                    <td class="py-2">{{ model.accuracy }}</td>
+                    <td class="py-2">{{ model.updated_at }}</td>
+                    <td class="py-2 text-center">
+                        {% if model.status == 'success' %}
+                            <span class="badge bg-emerald-50 text-emerald-600">Stable</span>
+                        {% elif model.status == 'warn' %}
+                            <span class="badge bg-amber-50 text-amber-500">Watch</span>
+                        {% else %}
+                            <span class="badge bg-rose-50 text-rose-500">Error</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="glass-card p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Alert log</h3>
+                <p class="text-sm text-slate-500">Latest warnings from AI services.</p>
+            </div>
+            <button class="text-sm text-slate-500 hover:text-slate-700">Download log</button>
+        </div>
+        <div id="log-list" class="space-y-3 max-h-72 overflow-auto pr-2">
+            {% for item in log_items %}
+            <div class="rounded-2xl border border-slate-100 px-4 py-3">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>{{ item.time }}</span>
+                    <span>{{ item.level }}</span>
+                </div>
+                <p class="text-sm text-slate-700 mt-1">{{ item.message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="glass-card p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Quick actions</h3>
+                <p class="text-sm text-slate-500">Trigger strategy tasks instantly.</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 gap-4">
+            <button class="quick-action" data-action="deploy-model">
+                <p class="text-sm text-slate-500">Deploy</p>
+                <p class="text-base font-semibold text-slate-900">Roll-out production model</p>
+            </button>
+            <button class="quick-action" data-action="weather-simulation">
+                <p class="text-sm text-slate-500">Simulation</p>
+                <p class="text-base font-semibold text-slate-900">Stress test extreme weather</p>
+            </button>
+            <button class="quick-action" data-action="warehouse-restart">
+                <p class="text-sm text-slate-500">Warehouse AI</p>
+                <p class="text-base font-semibold text-slate-900">Restart inventory optimizer</p>
+            </button>
+        </div>
+    </div>
+</section>
+
+<div id="toast" class="hidden fixed bottom-6 right-6 rounded-2xl px-4 py-3 text-sm font-semibold shadow-lg"></div>
+<div id="processing-overlay" class="hidden fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-40 flex items-center justify-center">
+    <div class="bg-white rounded-2xl px-6 py-4 text-slate-600 text-sm"><?xml version='1.0' encoding='utf-8'?></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script>
+  const initialData = {
+    summary: {{ summary|tojson }},
+    models: {{ model_list|tojson }},
+    logs: {{ log_items|tojson }}
+  };
+</script>
+{% block extra_js %}{% endblock extra_js %}
+{% endblock extra_scripts %}
+

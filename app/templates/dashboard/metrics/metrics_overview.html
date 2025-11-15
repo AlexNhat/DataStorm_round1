@@ -1,0 +1,121 @@
+﻿{% extends "base.html" %}
+{% import "components/card.html" as card %}
+{% import "components/chart_block.html" as charts %}
+
+{% block title %}Model Metrics Overview{% endblock %}
+
+{% block content %}
+<section class="ui-card mb-6">
+    <p class="text-xs uppercase tracking-[0.35em] text-slate-400 mb-2">Global Metrics</p>
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+            <h1 class="text-3xl font-semibold text-slate-900">Global Metrics Dashboard</h1>
+            <p class="text-sm text-slate-500">Accuracy, MAE and drift for every production model powered by the merged dataset.</p>
+        </div>
+        <div class="text-sm text-slate-500">
+            Last snapshot: <span class="font-semibold text-slate-900">{{ summary.generated_at }}</span>
+        </div>
+    </div>
+</section>
+
+{% set forecast_mae = summary.forecast.scopes[0].mae if summary.forecast.scopes else 0 %}
+{% set pricing_mae = summary.pricing.mae %}
+<section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    {{ card.card(subtitle='Inventory RL', title=summary.inventory_rl.accuracy|round(3), body='Reward trend stable across last retrain.') }}
+    {{ card.card(subtitle='Forecast MAE', title=forecast_mae|round(3), body='Scope-level MAE with rolling lags applied.') }}
+    {{ card.card(subtitle='Late Delivery F1', title=summary.late_delivery.f1|default('0.00'), body='Balanced precision/recall per global lane.') }}
+    {{ card.card(subtitle='Pricing Elasticity', title=pricing_mae|round(3), body='Elasticity heatmap aggregated daily.') }}
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {{ charts.chart_block('Inventory Optimizer RL · reward curve', 'rlRewardCurve', 'RL reward progression per iteration.') }}
+    {{ charts.chart_block('Forecast MAE by scope', 'forecastScope', 'Country / region MAE comparison.') }}
+    {{ charts.chart_block('Delivery risk by region', 'deliveryRegion', 'Average delay risk per macro region.') }}
+    <div class="ui-card">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Pricing heatmap</h3>
+                <p class="text-xs text-slate-500">Elasticity index across categories / regions.</p>
+            </div>
+        </div>
+        <div id="pricingHeatmap" class="grid gap-2"></div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script>
+const summary = {{ summary | tojson }};
+const ctxReward = document.getElementById('rlRewardCurve');
+if (ctxReward) {
+    new Chart(ctxReward, {
+        type: 'line',
+        data: {
+            labels: summary.inventory_rl.reward_curve.map((_, i) => `Iter ${i + 1}`),
+            datasets: [{
+                label: 'RL Reward',
+                data: summary.inventory_rl.reward_curve,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                tension: 0.35,
+                fill: true
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+
+const ctxScope = document.getElementById('forecastScope');
+if (ctxScope) {
+    new Chart(ctxScope, {
+        type: 'bar',
+        data: {
+            labels: summary.forecast.scopes.map(s => s.scope),
+            datasets: [{
+                label: 'MAE',
+                data: summary.forecast.scopes.map(s => s.mae),
+                backgroundColor: '#10b981'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+
+const ctxDelivery = document.getElementById('deliveryRegion');
+if (ctxDelivery) {
+    new Chart(ctxDelivery, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(summary.late_delivery.region_delay),
+            datasets: [{
+                label: 'Avg Delay Risk',
+                data: Object.values(summary.late_delivery.region_delay),
+                backgroundColor: '#f97316'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+
+const heatContainer = document.getElementById('pricingHeatmap');
+if (heatContainer) {
+    const maxVal = Math.max(...summary.pricing.heatmap.flat());
+    heatContainer.style.gridTemplateColumns = `repeat(${summary.pricing.heatmap_categories.length}, minmax(0, 1fr))`;
+    summary.pricing.heatmap.forEach((row, rIdx) => {
+        row.forEach((value, cIdx) => {
+            const cell = document.createElement('div');
+            cell.className = 'rounded-2xl p-3 text-xs text-center text-slate-800 bg-blue-50';
+            const intensity = value / maxVal;
+            cell.style.background = `rgba(37, 99, 235, ${0.2 + 0.6 * intensity})`;
+            cell.style.color = intensity > 0.5 ? '#fff' : '#0f172a';
+            cell.innerHTML = `
+                <div class="font-semibold">${summary.pricing.heatmap_regions[rIdx]}</div>
+                <div>${summary.pricing.heatmap_categories[cIdx]}</div>
+                <div class="text-lg font-bold">${value.toFixed(1)}</div>`;
+            heatContainer.appendChild(cell);
+        });
+    });
+}
+</script>
+{% endblock %}

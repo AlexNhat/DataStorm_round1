@@ -1,0 +1,13 @@
+{
+  "feature_names": [
+    "weather_risk_index",
+    "temp_7d_avg",
+    "rain_7d_avg",
+    "storm_flag",
+    "region_congestion_index",
+    "warehouse_workload_score",
+    "Order Item Product Price",
+    "Sales",
+    "Order Item Total"
+  ]
+}

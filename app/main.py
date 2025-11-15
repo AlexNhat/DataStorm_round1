@@ -9,7 +9,18 @@ from starlette.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 import os
 
-from app.routers import dashboard, ml_api, digital_twin_api, what_if_api, self_learning_api, os_api, cognitive_api, ai_dashboard
+from app.routers import (
+    dashboard,
+    ml_api,
+    digital_twin_api,
+    what_if_api,
+    self_learning_api,
+    os_api,
+    cognitive_api,
+    ai_dashboard,
+    models_registry,
+    models_metrics,
+)
 
 # Khởi tạo FastAPI app
 app = FastAPI(
@@ -30,6 +41,8 @@ if os.path.exists(static_dir):
 # Đăng ký routers
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 app.include_router(ai_dashboard.router, prefix="/dashboard", tags=["ai-dashboard"])
+app.include_router(models_registry.router, tags=["model-registry"])
+app.include_router(models_metrics.router, tags=["model-metrics"])
 app.include_router(ml_api.router, prefix="/ml", tags=["ml"])
 
 # V6 + V7 routers
@@ -53,4 +66,3 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "ok", "message": "Supply Chain Analytics API is running"}
-

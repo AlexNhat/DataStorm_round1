@@ -1,9 +1,12 @@
-"""
+﻿"""
 Cognitive API: endpoints cho V8 Strategic / Cognitive dashboard.
 """
 
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
+from pathlib import Path
+import json
+import logging
 import os
 import sys
 
@@ -17,6 +20,10 @@ from modules.cognitive.strategy_engine import Strategy, StrategyEngine
 from modules.cognitive.planner_agent import PlannerAgent
 
 router = APIRouter()
+LOGGER = logging.getLogger(__name__)
+BASE_DIR = Path(__file__).resolve().parents[2]
+MODEL_REGISTRY_PATH = BASE_DIR / "data" / "model_registry.json"
+WARNINGS_LOG_DIR = BASE_DIR / "logs" / "warnings"
 
 
 STRATEGY_UI_OVERRIDES: Dict[str, Dict[str, Any]] = {
@@ -98,7 +105,7 @@ ACTION_EFFECTS: Dict[str, Dict[str, Any]] = {
         "definition": "Triển khai = chuyển weights + cấu hình inference mới vào cụm serving, chuyển 100% traffic sau 5 phút warmup.",
         "impacts": [
             "Giảm tỉ lệ dự báo trễ thêm 3.1 điểm phần trăm",
-            "Service level dự kiến tăng từ 94% → 96.5% trong 24h"
+            "Service level dự kiến tăng từ 94% -> 96.5% trong 24h"
         ],
         "risks": [
             "Theo dõi drift trong 48h đầu để tránh sai lệch theo mùa"
@@ -110,7 +117,7 @@ ACTION_EFFECTS: Dict[str, Dict[str, Any]] = {
     "weather-simulation": {
         "title": "Stress test thời tiết cực đoan",
         "summary": "Đã mô phỏng kịch bản mưa 120mm trong 24h tại HCM & Hải Phòng.",
-        "definition": "Thời tiết cực đoan = lượng mưa >100mm + gió > 60km/h trong cùng ngày → ảnh hưởng giao thông đường bộ & cảng.",
+        "definition": "Thời tiết cực đoan = lượng mưa >100mm + gió > 60km/h trong cùng ngày -> ảnh hưởng giao thông đường bộ & cảng.",
         "impacts": [
             "Rủi ro giao trễ tăng 14% nếu không tăng buffer",
             "Kho VN-WH02 cần nâng tồn kho an toàn thêm 18%"
@@ -294,23 +301,127 @@ def _build_chart_payload() -> Dict[str, Any]:
     }
 
 
+
+
+def _load_model_registry_entries() -> List[Dict[str, Any]]:
+    if not MODEL_REGISTRY_PATH.exists():
+        LOGGER.warning("Model registry not found at %s", MODEL_REGISTRY_PATH)
+        return []
+    try:
+        with MODEL_REGISTRY_PATH.open("r", encoding="utf-8-sig") as registry_file:
+            data = json.load(registry_file)
+    except Exception as exc:  # pylint: disable=broad-except
+        LOGGER.exception("Failed to read model registry: %s", exc)
+        return []
+    if not isinstance(data, list):
+        LOGGER.warning("Model registry content must be a list, got %s", type(data))
+        return []
+    return data
+
 def _build_model_cards() -> List[Dict[str, Any]]:
+    registry_entries = _load_model_registry_entries()
+    if registry_entries:
+        cards: List[Dict[str, Any]] = []
+        for entry in registry_entries:
+            accuracy_value = entry.get("accuracy")
+            if isinstance(accuracy_value, (float, int)):
+                accuracy_display = f"{accuracy_value * 100:.1f}%"
+            else:
+                accuracy_display = str(accuracy_value) if accuracy_value is not None else "-"
+
+            last_update = entry.get("last_update")
+            updated_at_display = last_update or "N/A"
+            if isinstance(last_update, str):
+                try:
+                    updated_dt = datetime.fromisoformat(last_update.replace("Z", "+00:00"))
+                    updated_at_display = updated_dt.strftime("%d/%m %H:%M")
+                except ValueError:
+                    updated_at_display = last_update
+
+            last_inference = entry.get("last_inference_call")
+            last_inference_display = last_inference or None
+            if isinstance(last_inference, str):
+                try:
+                    inference_dt = datetime.fromisoformat(last_inference.replace("Z", "+00:00"))
+                    last_inference_display = inference_dt.strftime("%d/%m %H:%M")
+                except ValueError:
+                    last_inference_display = last_inference
+
+            cards.append({
+                "name": entry.get("name", "Unknown model"),
+                "version": entry.get("version", "N/A"),
+                "owner": entry.get("owner", "N/A"),
+                "status": entry.get("status", "Unknown"),
+                "accuracy": accuracy_display,
+                "updated_at": updated_at_display,
+                "note": entry.get("note", ""),
+                "dataset_version": entry.get("dataset_version", "N/A"),
+                "used_in_pipeline": bool(entry.get("used_in_pipeline")),
+                "last_inference_call": last_inference_display,
+                "warnings_count": entry.get("warnings_count", 0),
+                "last_warning": entry.get("last_warning"),
+            })
+        return cards
+
     return [
-        {"name": "Late Delivery Classifier", "version": "v9.1", "owner": "Ops Team", "status": "success", "accuracy": "92%", "updated_at": "15/11 08:05"},
-        {"name": "Demand Forecast Ensemble", "version": "v7.4", "owner": "Forecast Squad", "status": "warn", "accuracy": "88%", "updated_at": "15/11 07:30"},
-        {"name": "Inventory Optimizer RL", "version": "v5.2", "owner": "Warehouse AI", "status": "error", "accuracy": "85%", "updated_at": "14/11 23:10"},
-        {"name": "Pricing Elasticity", "version": "v4.3", "owner": "Revenue Lab", "status": "success", "accuracy": "90%", "updated_at": "14/11 21:45"}
+        {"name": "Late Delivery Classifier", "version": "v9.1", "owner": "Ops Team", "status": "success", "accuracy": "92%", "updated_at": "15/11 08:05", "note": "Fallback data", "dataset_version": "merged_global", "used_in_pipeline": True, "last_inference_call": None, "warnings_count": 0, "last_warning": None},
+        {"name": "Demand Forecast Ensemble", "version": "v7.4", "owner": "Forecast Squad", "status": "success", "accuracy": "88%", "updated_at": "15/11 07:30", "note": "Fallback data", "dataset_version": "merged_global", "used_in_pipeline": True, "last_inference_call": None, "warnings_count": 0, "last_warning": None},
+        {"name": "Inventory Optimizer RL", "version": "v5.2", "owner": "Warehouse AI", "status": "success", "accuracy": "85%", "updated_at": "14/11 23:10", "note": "Fallback data", "dataset_version": "merged_global", "used_in_pipeline": True, "last_inference_call": None, "warnings_count": 0, "last_warning": None},
+        {"name": "Pricing Elasticity", "version": "v4.3", "owner": "Revenue Lab", "status": "success", "accuracy": "90%", "updated_at": "14/11 21:45", "note": "Fallback data", "dataset_version": "merged_global", "used_in_pipeline": True, "last_inference_call": None, "warnings_count": 0, "last_warning": None},
     ]
 
 
-def _build_log_items() -> List[Dict[str, str]]:
-    return [
-        {"time": "08:31", "level": "Cảnh báo", "message": "Tồn kho kho HCM giảm 18%, đề nghị kiểm tra dự báo."},
-        {"time": "07:48", "level": "Thông tin", "message": "Model giao trễ v9.1 tái huấn luyện thành công (F1=0.92)."},
-        {"time": "07:05", "level": "Lỗi", "message": "Warehouse AI không đồng bộ được dữ liệu thời tiết EU (timeout)."},
-        {"time": "06:40", "level": "Thông tin", "message": "Planner AI đã gửi 3 chiến lược mới tới Control Center."}
-    ]
+def _parse_warning_line(line: str) -> Optional[Dict[str, Any]]:
+    parts = [segment.strip() for segment in line.split("|") if segment.strip()]
+    if len(parts) < 5:
+        return None
+    timestamp = parts[0]
+    model_name = parts[2]
+    metadata: Dict[str, str] = {}
+    for segment in parts[3:]:
+        if "=" in segment:
+            key, value = segment.split("=", 1)
+            metadata[key.strip()] = value.strip()
+    issue = metadata.get("issue", "Warning")
+    suggestion = metadata.get("suggestion", "")
+    severity = metadata.get("severity", "medium")
+    try:
+        parsed_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        parsed_time = datetime.utcnow()
+    return {
+        "timestamp": parsed_time,
+        "model": model_name,
+        "issue": issue,
+        "suggestion": suggestion,
+        "severity": severity,
+    }
 
+
+def _build_log_items(limit: int = 5) -> List[Dict[str, str]]:
+    entries: List[Dict[str, str]] = []
+    if WARNINGS_LOG_DIR.exists():
+        warnings_data: List[Dict[str, Any]] = []
+        for log_path in WARNINGS_LOG_DIR.glob("*_warnings.log"):
+            for line in log_path.read_text(encoding="utf-8").splitlines():
+                parsed = _parse_warning_line(line)
+                if parsed:
+                    warnings_data.append(parsed)
+        warnings_data.sort(key=lambda entry: entry["timestamp"], reverse=True)
+        for warning in warnings_data[:limit]:
+            entries.append(
+                {
+                    "time": warning["timestamp"].strftime("%d/%m %H:%M"),
+                    "level": f"Severity: {warning['severity'].title()}",
+                    "message": f"{warning['model']}: {warning['issue']} -> {warning.get('suggestion', 'Review details')}",
+                }
+            )
+    if not entries:
+        entries = [
+            {"time": "08:31", "level": "Warning", "message": "Global supply chain monitoring active."},
+            {"time": "07:48", "level": "Info", "message": "Models synced with GLOBAL dataset."},
+        ]
+    return entries
 
 def _build_dashboard_snapshot() -> Dict[str, Any]:
     model_results = _default_model_results()

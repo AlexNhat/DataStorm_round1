@@ -15,16 +15,16 @@ DataStorm là hệ thống AI Supply Chain toàn diện giúp dự báo nhu cầ
 
 ## 3. Logging & Model Registry Overhaul
 
-- **logs/warnings/** lưu toàn bộ cảnh báo chất lượng mô hình (RL, Forecast, Late Delivery, Pricing).  
-- **logs/inference/** ghi lại từng request/response cho mục đích audit, đồng thời đồng bộ với `results/metrics` để so khớp drift.  
-- **Model Registry (`app/services/model_registry.py`)** theo dõi: `status`, `version`, `api_endpoint`, `api_method`, `docs_path`, `chart_types`, `form_fields`, `dataset_info`, `last_trained`, `model_path` và `metrics`. Tất cả hiển thị trong Dashboard `/dashboard/models` và APIs `/dashboard/models/status`.  
+- **logs/warnings/** lưu toàn bộ cảnh báo chất lượng mô hình (RL, Forecast, Late Delivery, Pricing).
+- **logs/inference/** ghi lại từng request/response cho mục đích audit, đồng thời đồng bộ với `results/metrics` để so khớp drift.
+- **Model Registry (`app/services/model_registry.py`)** theo dõi: `status`, `version`, `api_endpoint`, `api_method`, `docs_path`, `chart_types`, `form_fields`, `dataset_info`, `last_trained`, `model_path` và `metrics`. Tất cả hiển thị trong Dashboard `/dashboard/models` và APIs `/dashboard/models/status`.
 - **Registry-driven routing** bảo đảm mỗi mô hình đều có metadata, auto-link tới tài liệu và forms UI.
 
 ## 4. Cognitive Dashboard & v8 UI
 
-- `/dashboard` cung cấp overview KPI + filter nâng cao; `/dashboard/models` để duyệt chi tiết từng mô hình.  
-- `/v8/dashboard` là Cognitive Dashboard thế hệ mới: hiển thị chiến lược đề xuất, mô phỏng multi-agent, scenario triggers.  
-- `/os/control-center` hiển thị hàng đợi hành động, trạng thái orchestration, approval flow cho self-healing actions.  
+- `/dashboard` cung cấp overview KPI + filter nâng cao; `/dashboard/models` để duyệt chi tiết từng mô hình.
+- `/v8/dashboard` là Cognitive Dashboard thế hệ mới: hiển thị chiến lược đề xuất, mô phỏng multi-agent, scenario triggers.
+- `/os/control-center` hiển thị hàng đợi hành động, trạng thái orchestration, approval flow cho self-healing actions.
 - `/dashboard/ai` + `/dashboard/tests` giúp team ML & QA theo dõi health liên tục.
 
 ## 5. Yêu cầu hệ thống
@@ -53,12 +53,12 @@ Khởi tạo `.env` (DB URI, feature flags, API key) dựa trên `docs/OS_ARCHIT
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-- `/dashboard` – KPI & phân tích vận hành.  
-- `/dashboard/models` – Model Registry UI.  
-- `/v8/dashboard` – Cognitive dashboard (chiến lược, multi-agent).  
-- `/os/control-center` – Orchestration & approval center.  
-- `/dashboard/models/status` – JSON health check cho CI/CD.  
-- `/docs` – OpenAPI.  
+- `/dashboard` – KPI & phân tích vận hành.
+- `/dashboard/models` – Model Registry UI.
+- `/v8/dashboard` – Cognitive dashboard (chiến lược, multi-agent).
+- `/os/control-center` – Orchestration & approval center.
+- `/dashboard/models/status` – JSON health check cho CI/CD.
+- `/docs` – OpenAPI.
 
 ## 8. Huấn luyện mô hình
 
@@ -71,8 +71,8 @@ python scripts/train_late_delivery.py --data data/merged_supply_weather_clean.pa
 python scripts/train_pricing_elasticity.py --data data/merged_supply_weather_clean.parquet
 ```
 
-- Kết quả được ghi vào `models/` và `results/metrics/`.  
-- Có thể chạy `python scripts/auto_retrain_global.py` để retrain hàng loạt.  
+- Kết quả được ghi vào `models/` và `results/metrics/`.
+- Có thể chạy `python scripts/auto_retrain_global.py` để retrain hàng loạt.
 - Pipeline dữ liệu chuẩn bị qua `python scripts/preprocess_and_build_feature_store.py`.
 
 ## 9. Inference & API Endpoints
@@ -95,8 +95,8 @@ pytest tests/regression tests/ui
 python scripts/run_all_tests_and_build_report.py   # tổng hợp + báo cáo HTML
 ```
 
-- Visual/UI snapshots ở `tests/ui/snapshots/`.  
-- Báo cáo regression lưu tại `results/test_reports/`.  
+- Visual/UI snapshots ở `tests/ui/snapshots/`.
+- Báo cáo regression lưu tại `results/test_reports/`.
 - `scripts/run_ui_tests.py` có thể dùng cho CI headless.
 
 ## 11. Cấu trúc dự án
@@ -106,15 +106,15 @@ Tóm tắt nhanh: `app/` (FastAPI & UI), `modules/` (cognitive, meta-learning, d
 
 ## 12. GitFlow nhanh
 
-1. Tạo nhánh `feature/*` từ `main`.  
-2. Commit nhỏ, mô tả rõ (ví dụ `feat`, `fix`, `docs`).  
-3. `git push -u origin feature/<name>` và mở Pull Request → review → merge `main`.  
+1. Tạo nhánh `feature/*` từ `main`.
+2. Commit nhỏ, mô tả rõ (ví dụ `feat`, `fix`, `docs`).
+3. `git push -u origin feature/<name>` và mở Pull Request → review → merge `main`.
 4. Xoá nhánh khi đã merge để giữ repo sạch.
 
 ## 13. Tài liệu & hỗ trợ
 
-- `docs/CONTROL_CENTER_GUIDE.md`, `docs/ML_IMPLEMENTATION_OVERVIEW.md`, `docs/OS_ARCHITECTURE.md` giải thích kiến trúc.  
-- `PROJECT_SUMMARY_REPORT.md`, `QUICK_START.md`, `README_V6_V7.md`, `README_V8_V9.md`, `STATUS.md` lưu lịch sử release.  
+- `docs/CONTROL_CENTER_GUIDE.md`, `docs/ML_IMPLEMENTATION_OVERVIEW.md`, `docs/OS_ARCHITECTURE.md` giải thích kiến trúc.
+- `PROJECT_SUMMARY_REPORT.md`, `QUICK_START.md`, `README_V6_V7.md`, `README_V8_V9.md`, `STATUS.md` lưu lịch sử release.
 - Các báo cáo nâng cao: `docs/STRATEGIC_AI_GUIDE.md`, `docs/AI_UI_IMPLEMENTATION_SUMMARY.md`, `docs/RISK_ANALYSIS.md`.
 
 Hệ thống sẵn sàng để người mới clone, cài đặt và chạy ngay, đồng thời cung cấp đầy đủ logging, registry metadata và UI để vận hành ở quy mô doanh nghiệp.

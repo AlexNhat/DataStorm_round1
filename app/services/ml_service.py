@@ -9,6 +9,10 @@ Cung cấp các hàm:
 
 import os
 import json
+import math
+import time
+from pathlib import Path
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -17,9 +21,31 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
+from modules.logging_utils import log_inference, log_inference_warning
+
 # Đường dẫn
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+BASE_DIR_PATH = Path(BASE_DIR)
 MODELS_DIR = os.path.join(BASE_DIR, 'models')
+MODELS_PATH = BASE_DIR_PATH / "models"
+
+_inventory_rl_model = None
+_inventory_rl_features: Optional[List[str]] = None
+_pricing_model = None
+_pricing_feature_names: Optional[List[str]] = None
+
+INVENTORY_DEFAULTS = {
+    "weather_risk_index": 0.0,
+    "temp_7d_avg": 0.0,
+    "rain_7d_avg": 0.0,
+    "storm_flag": 0.0,
+    "region_congestion_index": 1.0,
+    "warehouse_workload_score": 0.0,
+    "Order Item Product Price": 0.0,
+    "Sales": 0.0,
+    "Order Item Total": 0.0,
+}
+PRICING_BASE_FEATURES = ["price_log", "sales_log", "weather_risk_index", "weather_influence"]
 
 
 class MLModelService:
@@ -108,6 +134,7 @@ def predict_logistics_delay(service: MLModelService, payload: Dict) -> Dict:
     Returns:
         Dict với late_risk_prob, late_risk_label, top_features
     """
+    start_time = time.perf_counter()
     try:
         # Prepare features
         X = service._prepare_features(payload, 'logistics_delay')
@@ -128,12 +155,27 @@ def predict_logistics_delay(service: MLModelService, payload: Dict) -> Dict:
                 for i in top_indices
             ]
         
-        return {
+        result = {
             'late_risk_prob': float(prob),
             'late_risk_label': int(label),
             'top_features': top_features
         }
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        log_inference(
+            "Late Delivery Classifier",
+            params=payload,
+            latency_ms=latency_ms,
+            result_summary={"late_risk_prob": result["late_risk_prob"], "late_risk_label": result["late_risk_label"]},
+        )
+        if prob > 0.85:
+            log_inference_warning(
+                "Late Delivery Classifier",
+                detail=f"High late risk probability ({prob:.2f}) detected",
+                severity="high",
+            )
+        return result
     except Exception as e:
+        log_inference_warning("Late Delivery Classifier", detail=f"Prediction failure: {e}", severity="high")
         raise ValueError(f"Error in prediction: {str(e)}")
 
 
@@ -157,6 +199,7 @@ def predict_revenue(service: MLModelService, payload: Dict) -> Dict:
     Returns:
         Dict với forecasted_revenue, confidence_range
     """
+    start_time = time.perf_counter()
     try:
         # Prepare features
         X = service._prepare_features(payload, 'revenue_forecast')
@@ -169,14 +212,29 @@ def predict_revenue(service: MLModelService, payload: Dict) -> Dict:
         confidence_lower = prediction * 0.8
         confidence_upper = prediction * 1.2
         
-        return {
+        result = {
             'forecasted_revenue': float(prediction),
             'confidence_range': {
                 'lower': float(confidence_lower),
                 'upper': float(confidence_upper)
             }
         }
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        log_inference(
+            "Demand Forecast Ensemble",
+            params=payload,
+            latency_ms=latency_ms,
+            result_summary={"forecasted_revenue": result["forecasted_revenue"]},
+        )
+        if prediction < 0:
+            log_inference_warning(
+                "Demand Forecast Ensemble",
+                detail="Negative revenue forecast detected",
+                severity="medium",
+            )
+        return result
     except Exception as e:
+        log_inference_warning("Demand Forecast Ensemble", detail=f"Prediction failure: {e}", severity="high")
         raise ValueError(f"Error in prediction: {str(e)}")
 
 
@@ -200,6 +258,7 @@ def predict_churn(service: MLModelService, payload: Dict) -> Dict:
     Returns:
         Dict với churn_prob, churn_label
     """
+    start_time = time.perf_counter()
     try:
         # Prepare features
         X = service._prepare_features(payload, 'churn')
@@ -209,12 +268,128 @@ def predict_churn(service: MLModelService, payload: Dict) -> Dict:
         prob = model.predict_proba(X)[0, 1]  # Probability of churn
         label = 1 if prob > 0.5 else 0
         
-        return {
+        result = {
             'churn_prob': float(prob),
             'churn_label': int(label)
         }
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        log_inference(
+            "Customer Churn Model",
+            params=payload,
+            latency_ms=latency_ms,
+            result_summary={"churn_prob": result["churn_prob"], "churn_label": result["churn_label"]},
+        )
+        if prob > 0.85:
+            log_inference_warning(
+                "Customer Churn Model",
+                detail=f"High churn probability ({prob:.2f}) detected",
+                severity="medium",
+            )
+        return result
     except Exception as e:
+        log_inference_warning("Customer Churn Model", detail=f"Prediction failure: {e}", severity="high")
         raise ValueError(f"Error in prediction: {str(e)}")
+
+
+def _load_inventory_rl_artifacts():
+    global _inventory_rl_model, _inventory_rl_features
+    if _inventory_rl_model is None:
+        model_path = MODELS_PATH / "inventory_rl" / "global" / "inventory_rl_global.pkl"
+        if not model_path.exists():
+            raise FileNotFoundError(f"Inventory RL model not found: {model_path}")
+        _inventory_rl_model = joblib.load(model_path)
+        schema_path = model_path.with_name("feature_schema.json")
+        if schema_path.exists():
+            schema = json.loads(schema_path.read_text())
+            _inventory_rl_features = schema.get("feature_names") or list(INVENTORY_DEFAULTS.keys())
+        else:
+            _inventory_rl_features = list(INVENTORY_DEFAULTS.keys())
+    return _inventory_rl_model, _inventory_rl_features or list(INVENTORY_DEFAULTS.keys())
+
+
+def predict_inventory_rl(payload: Dict[str, Any]) -> Dict[str, float]:
+    model, feature_names = _load_inventory_rl_artifacts()
+    start_time = time.perf_counter()
+    try:
+        vector = []
+        for feature in feature_names:
+            value = payload.get(feature, INVENTORY_DEFAULTS.get(feature, 0.0))
+            vector.append(float(value))
+        X = np.array(vector, dtype=float).reshape(1, -1)
+        prediction = float(model.predict(X)[0])
+        result = {"recommended_qty_buffer": prediction}
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        log_inference(
+            "Inventory Optimizer RL",
+            params=payload,
+            latency_ms=latency_ms,
+            result_summary=result,
+            region=payload.get("region", "GLOBAL"),
+        )
+        if prediction < 0:
+            log_inference_warning("Inventory Optimizer RL", detail="Negative buffer recommendation", severity="medium")
+        return result
+    except Exception as exc:  # pylint: disable=broad-except
+        log_inference_warning("Inventory Optimizer RL", detail=f"Prediction failure: {exc}", severity="high")
+        raise
+
+
+def _load_pricing_elasticity_artifacts():
+    global _pricing_model, _pricing_feature_names
+    if _pricing_model is None:
+        model_path = MODELS_PATH / "pricing" / "global" / "pricing_elasticity.pkl"
+        if not model_path.exists():
+            raise FileNotFoundError(f"Pricing elasticity model not found: {model_path}")
+        _pricing_model = joblib.load(model_path)
+        schema_path = model_path.with_name("feature_columns.json")
+        if schema_path.exists():
+            schema = json.loads(schema_path.read_text())
+            _pricing_feature_names = schema.get("feature_names") or PRICING_BASE_FEATURES
+        else:
+            _pricing_feature_names = PRICING_BASE_FEATURES
+    return _pricing_model, _pricing_feature_names or PRICING_BASE_FEATURES
+
+
+def predict_pricing_elasticity(payload: Dict[str, Any]) -> Dict[str, float]:
+    model, feature_names = _load_pricing_elasticity_artifacts()
+    start_time = time.perf_counter()
+    try:
+        vector = []
+        for feature in feature_names:
+            if feature == "price_log":
+                base_price = payload.get("price", payload.get("price_log", 0.0))
+                value = math.log1p(float(base_price))
+            elif feature == "sales_log":
+                base_sales = payload.get("sales", payload.get("sales_log", 0.0))
+                value = math.log1p(float(base_sales))
+            elif feature == "weather_risk_index":
+                value = payload.get("weather_risk_index", 0.0)
+            elif feature == "weather_influence":
+                value = payload.get("weather_influence", payload.get("weather_risk_index", 0.0))
+            else:
+                value = payload.get(feature, 0.0)
+            vector.append(float(value))
+        X = np.array(vector, dtype=float).reshape(1, -1)
+        prediction = float(model.predict(X)[0])
+        expected_quantity = math.expm1(prediction)
+        result = {
+            "quantity_log": prediction,
+            "expected_quantity": expected_quantity,
+        }
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        log_inference(
+            "Pricing Elasticity Model",
+            params=payload,
+            latency_ms=latency_ms,
+            result_summary=result,
+            region=payload.get("region", "GLOBAL"),
+        )
+        if expected_quantity < 0:
+            log_inference_warning("Pricing Elasticity Model", detail="Negative quantity projection", severity="medium")
+        return result
+    except Exception as exc:  # pylint: disable=broad-except
+        log_inference_warning("Pricing Elasticity Model", detail=f"Prediction failure: {exc}", severity="high")
+        raise
 
 
 # Global service instances (lazy loading)

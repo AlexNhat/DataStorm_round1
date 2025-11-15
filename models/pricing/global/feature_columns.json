@@ -1,0 +1,33 @@
+{
+  "feature_names": [
+    "price_log",
+    "sales_log",
+    "weather_risk_index",
+    "weather_influence",
+    "cat_Accessories",
+    "cat_Baseball & Softball",
+    "cat_Boxing & MMA",
+    "cat_Camping & Hiking",
+    "cat_Cardio Equipment",
+    "cat_Cleats",
+    "cat_Electronics",
+    "cat_Fishing",
+    "cat_Fitness Accessories",
+    "cat_Girls' Apparel",
+    "cat_Golf Apparel",
+    "cat_Golf Balls",
+    "cat_Golf Gloves",
+    "cat_Golf Shoes",
+    "cat_Hockey",
+    "cat_Hunting & Shooting",
+    "cat_Indoor/Outdoor Games",
+    "cat_Lacrosse",
+    "cat_Men's Footwear",
+    "cat_Shop By Sport",
+    "cat_Tennis & Racquet",
+    "cat_Trade-In",
+    "cat_Water Sports",
+    "cat_Women's Apparel",
+    "region_GLOBAL_OTHER"
+  ]
+}

@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{% import "components/card.html" as card %}
+{% import "components/button.html" as button %}
+{% import "components/badge_status.html" as badge %}
+{% import "components/table_responsive.html" as table %}
 
 {% block title %}OS Control Center{% endblock %}
 
@@ -11,21 +15,8 @@
         border: 1px solid rgba(15, 23, 42, 0.06);
         box-shadow: 0 20px 40px rgba(15, 23, 42, 0.07);
     }
-    .kpi-card {
-        border-radius: 20px;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        padding: 18px 20px;
-        background: #fff;
-        transition: transform 0.15s ease;
-    }
-    .kpi-card:hover { transform: translateY(-4px); }
-    .kpi-badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.65rem;
-        border-radius: 999px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
+    .kpi-grid .ui-card {
+        min-height: 140px;
     }
     .timeline-dot {
         width: 10px;
@@ -77,27 +68,36 @@
     </div>
 </section>
 
-<section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <div class="kpi-card">
-        <p class="text-xs text-slate-400 uppercase">Action chờ duyệt</p>
-        <p class="text-2xl font-semibold text-slate-900 mt-2" id="kpi-pending-count">--</p>
-        <p class="text-xs text-slate-400 mt-1">AI đang đợi bạn xác nhận</p>
-    </div>
-    <div class="kpi-card">
-        <p class="text-xs text-slate-400 uppercase">Tỉ lệ tự động</p>
-        <p class="text-2xl font-semibold text-slate-900 mt-2">72%</p>
-        <p class="text-xs text-slate-400 mt-1">Action auto-applied tuần này</p>
-    </div>
-    <div class="kpi-card">
-        <p="text-xs text-slate-400 uppercase">Vi phạm policy</p>
-        <p class="text-2xl font-semibold text-slate-900 mt-2">2</p>
-        <p class="text-xs text-slate-400 mt-1">Cần rà soát ngay</p>
-    </div>
-    <div class="kpi-card">
-        <p class="text-xs text-slate-400 uppercase">Khuyến nghị mới</p>
-        <p class="text-2xl font-semibold text-slate-900 mt-2">5</p>
-        <p class="text-xs text-slate-400 mt-1">Chưa gửi sang Control Tower</p>
-    </div>
+{% set control_kpis = [
+    {
+        'subtitle': 'Pending approvals',
+        'value': '<span id="kpi-pending-count">--</span>',
+        'description': 'AI actions waiting for operator decision'
+    },
+    {
+        'subtitle': 'Auto applied rate',
+        'value': '<span id="kpi-auto-rate">72%</span>',
+        'description': 'Actions executed automatically this week'
+    },
+    {
+        'subtitle': 'Policy violations',
+        'value': '<span id="kpi-policy-violations">2</span>',
+        'description': 'Items requiring compliance review'
+    },
+    {
+        'subtitle': 'New recommendations',
+        'value': '<span id="kpi-new-recos">5</span>',
+        'description': 'Awaiting routing to Control Tower'
+    }
+] %}
+<section class="kpi-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    {% for kpi in control_kpis %}
+        {{ card.card(
+            subtitle=kpi.subtitle,
+            title=kpi.value,
+            body='<p class="text-xs text-slate-500">' ~ kpi.description ~ '</p>'
+        ) }}
+    {% endfor %}
 </section>
 
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">

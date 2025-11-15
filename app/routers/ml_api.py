@@ -21,7 +21,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
 from app.services.ml_service import (
     get_logistics_service, predict_logistics_delay,
     get_revenue_service, predict_revenue,
-    get_churn_service, predict_churn
+    get_churn_service, predict_churn,
+    predict_inventory_rl, predict_pricing_elasticity,
 )
 
 router = APIRouter()
@@ -79,6 +80,31 @@ class ChurnRequest(BaseModel):
     # Có thể thêm các features khác
 
 
+class InventoryRLRequest(BaseModel):
+    """Request payload cho Inventory Optimizer RL."""
+    weather_risk_index: float = 0.0
+    temp_7d_avg: float = 0.0
+    rain_7d_avg: float = 0.0
+    storm_flag: float = 0.0
+    region_congestion_index: float = 1.0
+    warehouse_workload_score: float = 0.0
+    order_item_price: float = Field(0.0, alias="order_item_price")
+    sales: float = 0.0
+    order_item_total: float = 0.0
+    region: Optional[str] = "GLOBAL"
+    feature_overrides: Dict[str, float] = Field(default_factory=dict)
+
+
+class PricingElasticityRequest(BaseModel):
+    """Request payload cho Pricing Elasticity model."""
+    price: float = 0.0
+    sales: float = 0.0
+    weather_risk_index: float = 0.0
+    weather_influence: Optional[float] = None
+    region: Optional[str] = "GLOBAL"
+    feature_overrides: Dict[str, float] = Field(default_factory=dict)
+
+
 @router.post("/logistics/delay")
 async def predict_logistics_delay_endpoint(request: LogisticsDelayRequest):
     """
@@ -102,6 +128,35 @@ async def predict_logistics_delay_endpoint(request: LogisticsDelayRequest):
         }
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=f"Model not found: {str(e)}. Please train the model first.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+
+
+@router.post("/rl/inventory")
+async def predict_inventory_rl_endpoint(request: InventoryRLRequest):
+    """
+    Predict inventory buffer recommendation using RL model.
+    """
+    try:
+        payload = request.feature_overrides.copy()
+        payload.update(
+            {
+                "weather_risk_index": request.weather_risk_index,
+                "temp_7d_avg": request.temp_7d_avg,
+                "rain_7d_avg": request.rain_7d_avg,
+                "storm_flag": request.storm_flag,
+                "region_congestion_index": request.region_congestion_index,
+                "warehouse_workload_score": request.warehouse_workload_score,
+                "Order Item Product Price": request.order_item_price,
+                "Sales": request.sales,
+                "Order Item Total": request.order_item_total,
+                "region": request.region,
+            }
+        )
+        result = predict_inventory_rl(payload)
+        return {"status": "success", "prediction": result}
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
@@ -133,6 +188,14 @@ async def predict_revenue_endpoint(request: RevenueForecastRequest):
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
 
+@router.post("/forecast/demand")
+async def predict_demand_forecast_endpoint(request: RevenueForecastRequest):
+    """
+    Alias endpoint cho demand forecast (dùng Demand Forecast Ensemble).
+    """
+    return await predict_revenue_endpoint(request)
+
+
 @router.post("/customer/churn")
 async def predict_churn_endpoint(request: ChurnRequest):
     """
@@ -156,6 +219,30 @@ async def predict_churn_endpoint(request: ChurnRequest):
         }
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=f"Model not found: {str(e)}. Please train the model first.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+
+
+@router.post("/pricing/elasticity")
+async def predict_pricing_elasticity_endpoint(request: PricingElasticityRequest):
+    """
+    Predict pricing elasticity impact (quantity response).
+    """
+    try:
+        payload = request.feature_overrides.copy()
+        payload.update(
+            {
+                "price": request.price,
+                "sales": request.sales,
+                "weather_risk_index": request.weather_risk_index,
+                "weather_influence": request.weather_influence,
+                "region": request.region,
+            }
+        )
+        result = predict_pricing_elasticity(payload)
+        return {"status": "success", "prediction": result}
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
@@ -209,3 +296,24 @@ async def customer_churn_page(request: Request):
     """
     return templates.TemplateResponse("ml_customer_churn.html", {"request": request})
 
+class InventoryRLRequest(BaseModel):
+    weather_risk_index: float = 0.0
+    temp_7d_avg: float = 0.0
+    rain_7d_avg: float = 0.0
+    storm_flag: float = 0.0
+    region_congestion_index: float = 1.0
+    warehouse_workload_score: float = 0.0
+    order_item_price: float = 0.0
+    sales: float = 0.0
+    order_item_total: float = 0.0
+    region: Optional[str] = "GLOBAL"
+    feature_overrides: Dict[str, float] = Field(default_factory=dict)
+
+
+class PricingElasticityRequest(BaseModel):
+    price: float = 0.0
+    sales: float = 0.0
+    weather_risk_index: float = 0.0
+    weather_influence: Optional[float] = None
+    region: Optional[str] = "GLOBAL"
+    feature_overrides: Dict[str, float] = Field(default_factory=dict)

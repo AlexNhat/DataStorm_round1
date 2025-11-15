@@ -1,0 +1,49 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Pricing Metrics{% endblock %}
+
+{% block content %}
+<section class="ui-card mb-6">
+    <a href="/dashboard/metrics" class="text-sm text-blue-600 hover:underline flex items-center gap-2">
+        <i class="fa-solid fa-arrow-left"></i> Back to metrics overview
+    </a>
+    <div class="mt-4">
+        <p class="text-xs uppercase tracking-[0.35em] text-slate-400 mb-2">Model Metrics</p>
+        <h1 class="text-3xl font-semibold text-slate-900">Pricing Elasticity</h1>
+        <p class="text-sm text-slate-500">Region-category elasticity delivered via the merged weather-aware dataset.</p>
+    </div>
+</section>
+
+<section class="ui-card">
+    <h2 class="text-lg font-semibold text-slate-900 mb-4">Region x category heatmap</h2>
+    <div id="pricingHeatmapDetail" class="grid gap-3"></div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script>
+const summary = {{ summary | tojson }};
+const heatContainer = document.getElementById('pricingHeatmapDetail');
+if (heatContainer) {
+    const regions = summary.pricing.heatmap_regions;
+    const categories = summary.pricing.heatmap_categories;
+    const flatValues = summary.pricing.heatmap.flat();
+    const maxVal = Math.max(...flatValues, 1);
+    heatContainer.style.gridTemplateColumns = `repeat(${categories.length}, minmax(120px,1fr))`;
+    summary.pricing.heatmap.forEach((row, rIdx) => {
+        row.forEach((value, cIdx) => {
+            const intensity = Math.min(1, value / maxVal);
+            const cell = document.createElement('div');
+            cell.className = 'rounded-2xl p-4 text-center text-xs text-white transition transform hover:scale-[1.02]';
+            cell.style.backgroundColor = `rgba(99, 102, 241, ${0.35 + 0.6 * intensity})`;
+            cell.innerHTML = `
+                <div class="font-semibold text-base">${regions[rIdx]}</div>
+                <div class="mt-1">${categories[cIdx]}</div>
+                <div class="mt-2 text-lg font-bold">${value.toFixed(1)}</div>`;
+            heatContainer.appendChild(cell);
+        });
+    });
+}
+</script>
+{% endblock %}

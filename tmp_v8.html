@@ -1,0 +1,1191 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategic AI Recommendations - Supply Chain AI</title>
+    
+    <link rel="icon" href="http://testserver/static/favicon.ico">
+
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        .kpi-card {
+            transition: transform 0.2s;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+    
+    
+<style>
+    .strategy-card {
+        transition: all 0.3s;
+        border-left: 4px solid #3b82f6;
+    }
+    .strategy-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .strategy-card.selected {
+        border-left-color: #10b981;
+        background-color: #f0fdf4;
+    }
+    .kpi-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    .kpi-positive { background-color: #d1fae5; color: #065f46; }
+    .kpi-negative { background-color: #fee2e2; color: #991b1b; }
+    .kpi-neutral { background-color: #e5e7eb; color: #374151; }
+</style>
+
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold">📊 Supply Chain Analytics Dashboard</h1>
+                <nav class="space-x-4">
+                    <a href="/dashboard" class="hover:text-blue-200">Dashboard</a>
+                    <a href="/dashboard/ai" class="hover:text-blue-200">🤖 AI Models</a>
+                    <a href="/v8/dashboard" class="hover:text-blue-200">🧠 Strategic AI</a>
+                    <a href="/os/control-center" class="hover:text-blue-200">🎮 Control Center</a>
+                    <a href="/dashboard/test-report" class="hover:text-blue-200">Test Report</a>
+                    <a href="/docs" class="hover:text-blue-200">📚 Docs</a>
+                    <a href="/notebooks" class="hover:text-blue-200">📓 Notebooks</a>
+                    <a href="/health" class="hover:text-blue-200">Health</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg p-8 text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-700">Äang táº¡o chiáº¿n lÆ°á»£c...</p>
+    </div>
+</div>
+
+<!-- Success Toast -->
+<div id="success-toast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg z-50 hidden">
+    <div class="flex items-center justify-between">
+        <span id="success-message"></span>
+        <button onclick="document.getElementById('success-toast').classList.add('hidden')" class="ml-4 text-white hover:text-gray-200">âœ•</button>
+    </div>
+</div>
+
+<!-- Error Toast -->
+<div id="error-toast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg z-50 hidden">
+    <div class="flex items-center justify-between">
+        <span id="error-message"></span>
+        <button onclick="document.getElementById('error-toast').classList.add('hidden')" class="ml-4 text-white hover:text-gray-200">âœ•</button>
+    </div>
+</div>
+
+<!-- Page Header -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">ðŸ§  Strategic AI Recommendations</h1>
+            <p class="text-gray-600">AI phÃ¢n tÃ­ch vÃ  Ä‘á» xuáº¥t cÃ¡c chiáº¿n lÆ°á»£c tá»‘i Æ°u cho chuá»—i cung á»©ng</p>
+        </div>
+        <div class="flex flex-col gap-3 sm:flex-row">
+            <button id="btn-export-plan" class="bg-emerald-600 text-white px-5 py-3 rounded-lg font-semibold hover:bg-emerald-700 hidden" disabled>
+                ðŸ“„ Xuáº¥t Káº¿ Hoáº¡ch Chi Tiáº¿t
+            </button>
+            <button id="btn-generate-strategies" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                ðŸ”„ Táº¡o Chiáº¿n LÆ°á»£c Má»›i
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Input Configuration -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-bold mb-4">âš™ï¸ Cáº¥u HÃ¬nh Äáº§u VÃ o</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-700 flex items-center gap-2">ðŸŽ¯ Business Objectives</h3>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Má»¥c tiÃªu</label>
+                <select id="objectives" class="w-full border border-gray-300 rounded-md px-3 py-2" multiple>
+                    <option value="balance" selected>CÃ¢n Báº±ng</option>
+                    <option value="min_cost">Tá»‘i Æ¯u Chi PhÃ­</option>
+                    <option value="max_service">Tá»‘i Äa Service Level</option>
+                    <option value="reduce_risk">Giáº£m Rá»§i Ro</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Giá»¯ Ctrl Ä‘á»ƒ chá»n nhiá»u má»¥c tiÃªu</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ðŸ“ Khu Vá»±c</label>
+                    <input type="text" id="region" value="VN" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="VN, US, EU...">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ðŸ‚ MÃ¹a</label>
+                    <select id="season" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        <option value="spring">XuÃ¢n</option>
+                        <option value="summer" selected>HÃ¨</option>
+                        <option value="fall">Thu</option>
+                        <option value="winter">ÄÃ´ng</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ðŸ“¦ Tá»“n Kho Hiá»‡n Táº¡i</label>
+                <input type="number" id="current-inventory" value="10000" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ðŸ“ˆ Dá»± BÃ¡o Nhu Cáº§u</label>
+                <input type="number" id="demand-forecast" value="12000" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                <p class="text-xs text-gray-500 mt-1">AI tá»± Ä‘á»™ng táº£i tá»« mÃ´ hÃ¬nh Forecast</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">âš ï¸ Risk Tolerance</label>
+                <select id="risk-tolerance" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+        </div>
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-700 flex items-center gap-2">âš™ Operational Constraints</h3>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ðŸŒ¦ï¸ Weather Risk</label>
+                <input type="number" id="weather-risk" value="0.3" min="0" max="1" step="0.1" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">â± Lead Time Trung BÃ¬nh (ngÃ y)</label>
+                <input type="number" id="avg-lead-time" value="4" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ðŸšš Chi PhÃ­ Logistics Hiá»‡n Táº¡i ($/Ä‘Æ¡n)</label>
+                <input type="number" id="current-logistics-cost" value="15" step="0.5" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ðŸ’° NgÃ¢n SÃ¡ch Tá»‘i Äa ($)</label>
+                <input type="number" id="max-budget" value="50000" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ðŸŽšï¸ Æ¯u TiÃªn Má»¥c TiÃªu</label>
+                <div class="grid grid-cols-3 gap-2 text-xs text-center">
+                    <div>
+                        <span>Cost</span>
+                        <input type="range" id="priority-cost" min="0" max="10" value="5" class="w-full">
+                    </div>
+                    <div>
+                        <span>Lead Time</span>
+                        <input type="range" id="priority-lead" min="0" max="10" value="5" class="w-full">
+                    </div>
+                    <div>
+                        <span>Service</span>
+                        <input type="range" id="priority-service" min="0" max="10" value="5" class="w-full">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Strategies Comparison -->
+<div id="strategies-section" class="hidden">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-2xl font-bold mb-4">ðŸ“Š So SÃ¡nh Chiáº¿n LÆ°á»£c</h2>
+        
+        <!-- Comparison Chart -->
+        <div class="mb-6">
+            <canvas id="strategies-comparison-chart" height="100"></canvas>
+        </div>
+        
+        <!-- Strategies Grid -->
+        <div id="strategies-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>
+    
+    <!-- Recommendations -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-2xl font-bold mb-4">âœ… HÃ nh Äá»™ng Äá» Xuáº¥t</h2>
+        <div id="recommendations-list" class="space-y-4">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>
+    
+        <!-- AI Reasoning Panel -->
+    <div id="reasoning-section" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h2 class="text-2xl font-bold">🤖 Đề xuất & Lý luận AI</h2>
+                <p class="text-sm text-gray-600">Giải thích vì sao AI đề xuất chiến lược này và yếu tố ảnh hưởng chính.</p>
+            </div>
+            <div class="flex gap-3 text-sm">
+                <span class="kpi-badge kpi-neutral">Confidence ≥ 75% sẽ xuất hiện</span>
+                <button class="bg-slate-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-slate-200" onclick="generateStrategies()">Làm mới</button>
+            </div>
+        </div>
+        <div id="reasoning-grid" class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
+    </div>
+    <!-- Reasoning Summary -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold mb-4">ðŸ’­ LÃ½ Luáº­n cá»§a AI</h2>
+        <div id="reasoning-content" class="prose max-w-none bg-gray-50 p-6 rounded-lg">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+
+<!-- Strategy Detail Modal -->
+<div id="strategy-detail-modal" class="fixed inset-0 z-50 hidden items-start justify-center bg-gray-900 bg-opacity-70 px-4 py-8">
+    <div class="relative w-full max-w-5xl rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-start justify-between border-b border-gray-200 px-6 py-4">
+            <div>
+                <p class="text-sm uppercase tracking-wide text-blue-600">Chi tiáº¿t chiáº¿n lÆ°á»£c</p>
+                <h3 id="strategy-modal-title" class="text-2xl font-bold text-gray-900"></h3>
+                <p id="strategy-modal-subtitle" class="text-sm text-gray-500"></p>
+            </div>
+            <button onclick="closeStrategyModal()" class="text-gray-500 transition hover:text-gray-900">âœ•</button>
+        </div>
+        <div class="grid gap-6 px-6 py-6 lg:grid-cols-3">
+            <div class="space-y-4 lg:col-span-2">
+                <section class="rounded-xl border border-gray-200 p-4">
+                    <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                        <span class="text-lg">ðŸŽ¯</span> Tá»•ng quan má»¥c tiÃªu
+                    </h4>
+                    <div id="strategy-modal-overview" class="grid gap-4 text-sm text-gray-700 sm:grid-cols-2"></div>
+                </section>
+                <section class="rounded-xl border border-gray-200 p-4">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h4 class="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                            <span class="text-lg">ðŸ› ï¸</span> Action Plan
+                        </h4>
+                        <span id="strategy-modal-confidence" class="text-xs font-semibold uppercase tracking-wide text-emerald-600"></span>
+                    </div>
+                    <div id="strategy-modal-actions" class="space-y-3 text-sm"></div>
+                </section>
+                <section class="rounded-xl border border-gray-200 p-4">
+                    <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                        <span class="text-lg">ðŸ“Š</span> MÃ´ phá»ng Digital Twin
+                    </h4>
+                    <canvas id="strategy-modal-chart" height="180"></canvas>
+                    <p id="strategy-modal-chart-hint" class="mt-2 text-xs text-gray-500"></p>
+                </section>
+            </div>
+            <div class="flex flex-col gap-4">
+                <section class="rounded-xl border border-gray-200 p-4">
+                    <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                        <span class="text-lg">ðŸ“Œ</span> KPI chÃ­nh
+                    </h4>
+                    <div id="strategy-modal-kpis" class="space-y-2 text-sm"></div>
+                </section>
+                <section class="rounded-xl border border-gray-200 p-4">
+                    <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                        <span class="text-lg">ðŸ§¾</span> Xuáº¥t káº¿ hoáº¡ch
+                    </h4>
+                    <div class="space-y-3 text-sm text-gray-600">
+                        <p>Chá»n hÃ nh Ä‘á»™ng báº¡n muá»‘n thá»±c hiá»‡n vá»›i chiáº¿n lÆ°á»£c nÃ y.</p>
+                        <button class="w-full rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white transition hover:bg-emerald-700" onclick="exportStrategyPlan()">ðŸ“„ Xuáº¥t Markdown</button>
+                        <button class="w-full rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700" onclick="sendStrategyToControlCenter()">ðŸš€ Gá»­i sang Control Center</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Reasoning detail modal -->
+<div id="reasoning-modal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden z-50 items-start justify-center px-4 py-8">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
+        <div class="flex items-start justify-between border-b border-gray-200 px-6 py-4">
+            <div>
+                <p class="text-xs uppercase font-semibold text-blue-600">Chi tiết lý luận</p>
+                <h3 id="reasoning-modal-title" class="text-2xl font-bold text-gray-900"></h3>
+                <p id="reasoning-modal-desc" class="text-sm text-gray-600"></p>
+            </div>
+            <button class="text-gray-400 hover:text-gray-900" onclick="closeReasoningModal()">Đóng</button>
+        </div>
+        <div class="grid gap-6 px-6 py-6 lg:grid-cols-3">
+            <div class="space-y-4 lg:col-span-2">
+                <section class="rounded-xl border border-gray-100 p-4">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Yếu tố ảnh hưởng chính</h4>
+                    <div id="reasoning-feature-table" class="space-y-2 text-sm text-gray-700"></div>
+                    <canvas id="reasoning-feature-chart" height="120" class="mt-4"></canvas>
+                </section>
+                <section class="rounded-xl border border-gray-100 p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-sm font-semibold text-gray-700">Kịch bản what-if</h4>
+                        <span class="text-xs text-gray-500">Thay đổi giả định để xem tác động</span>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-3 text-sm">
+                        <div>
+                            <label class="block text-xs uppercase text-gray-500">Weather Δ (%)</label>
+                            <input type="range" id="slider-weather" min="-30" max="30" step="5" value="0" class="w-full">
+                            <div class="text-xs text-gray-600 text-center" id="slider-weather-label">0%</div>
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-gray-500">Lead time Δ (ngày)</label>
+                            <input type="range" id="slider-lead" min="-2" max="3" step="0.5" value="0" class="w-full">
+                            <div class="text-xs text-gray-600 text-center" id="slider-lead-label">0</div>
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-gray-500">Demand Δ (%)</label>
+                            <input type="range" id="slider-demand" min="-20" max="20" step="5" value="0" class="w-full">
+                            <div class="text-xs text-gray-600 text-center" id="slider-demand-label">0%</div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex gap-3">
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm" onclick="runWhatIfScenario()">Thử kịch bản</button>
+                        <button class="border border-gray-200 px-4 py-2 rounded-lg text-sm" onclick="openRawDataPanel()">Xem dữ liệu gốc</button>
+                    </div>
+                    <div id="whatif-result" class="mt-4 text-sm text-gray-700"></div>
+                </section>
+            </div>
+            <div class="space-y-4">
+                <section class="rounded-xl border border-gray-100 p-4">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Hành động đề xuất</h4>
+                    <p id="reasoning-modal-action" class="text-base font-semibold text-gray-900"></p>
+                    <p class="text-xs text-gray-500">Confidence: <span id="reasoning-modal-confidence"></span></p>
+                    <div class="mt-4 space-y-2">
+                        <button class="w-full bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-emerald-700" onclick="applyReasoningDecision()">Thực hiện đề xuất</button>
+                        <button class="w-full bg-rose-500 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-rose-600" onclick="rejectReasoningDecision()">Từ chối</button>
+                        <button class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" onclick="closeReasoningModal()">Đóng</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Raw data modal -->
+<div id="raw-data-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 items-center justify-center px-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full">
+        <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+            <h3 class="text-lg font-semibold text-gray-900">Dữ liệu gốc</h3>
+            <button class="text-gray-400 hover:text-gray-900" onclick="closeRawDataPanel()">Đóng</button>
+        </div>
+        <div class="p-6">
+            <table id="raw-data-table" class="min-w-full text-sm text-gray-700"></table>
+        </div>
+    </div>
+</div>
+<!-- Empty State -->
+<div id="empty-state" class="bg-white rounded-lg shadow-md p-12 text-center">
+    <div class="text-6xl mb-4">ðŸ§ </div>
+    <h3 class="text-2xl font-bold text-gray-800 mb-2">ChÆ°a cÃ³ chiáº¿n lÆ°á»£c nÃ o</h3>
+    <p class="text-gray-600 mb-6">Nháº¥n nÃºt "Táº¡o Chiáº¿n LÆ°á»£c Má»›i" Ä‘á»ƒ báº¯t Ä‘áº§u</p>
+    <button onclick="generateStrategies()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+        ðŸ”„ Táº¡o Chiáº¿n LÆ°á»£c Má»›i
+    </button>
+</div>
+
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-12 py-4">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 Supply Chain Analytics. Phân tích chuỗi cung ứng và thời tiết.</p>
+        </div>
+    </footer>
+    
+    
+<script src="/static/js/cognitive_charts.js"></script>
+<script>
+// Global state
+let currentStrategies = [];
+let currentComparison = null;
+let currentRecommendations = null;
+let currentReasoning = [];
+let lastStrategyInput = null;
+let lastPlanToken = null;
+let currentPlanToken = null;
+let selectedStrategyId = null;
+let selectedReasoning = null;
+let strategyDetailChart = null;
+let reasoningDetailChart = null;
+
+const strategyModal = document.getElementById('strategy-detail-modal');
+
+function parseNumberValue(id, fallback = 0) {
+    const element = document.getElementById(id);
+    if (!element) {
+        return fallback;
+    }
+    const numeric = parseFloat(element.value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function mapObjectiveLabel(key) {
+    const mapping = {
+        balance: 'CÃ¢n báº±ng',
+        min_cost: 'Tá»‘i Æ°u chi phÃ­',
+        max_service: 'Tá»‘i Ä‘a service level',
+        reduce_risk: 'Giáº£m rá»§i ro'
+    };
+    return mapping[key] || key;
+}
+
+function collectStrategyInputs() {
+    const objectives = Array.from(document.getElementById('objectives').selectedOptions).map(opt => opt.value);
+    const region = (document.getElementById('region').value || 'VN').trim();
+    const season = document.getElementById('season').value;
+    const inputSnapshot = {
+        objectives: objectives.length ? objectives : ['balance'],
+        region,
+        season,
+        inputs: {
+            inventory: parseNumberValue('current-inventory', 10000),
+            demand_forecast: parseNumberValue('demand-forecast', 12000),
+            weather_risk: Math.min(Math.max(parseNumberValue('weather-risk', 0.3), 0), 1),
+            avg_lead_time: parseNumberValue('avg-lead-time', 4),
+            logistics_cost: parseNumberValue('current-logistics-cost', 15),
+            budget_ceiling: parseNumberValue('max-budget', 50000),
+            priorities: {
+                cost: parseNumberValue('priority-cost', 5),
+                lead_time: parseNumberValue('priority-lead', 5),
+                service: parseNumberValue('priority-service', 5)
+            },
+            risk_tolerance: document.getElementById('risk-tolerance').value || 'medium'
+        },
+        metadata: {
+            requested_at: new Date().toISOString()
+        }
+    };
+
+    inputSnapshot.model_results = {
+        forecast: {
+            expected_revenue: Math.round(inputSnapshot.inputs.demand_forecast * 8),
+            demand_forecast: [
+                Math.round(inputSnapshot.inputs.demand_forecast * 0.85),
+                Math.round(inputSnapshot.inputs.demand_forecast),
+                Math.round(inputSnapshot.inputs.demand_forecast * 1.1)
+            ]
+        },
+        delay_risk: {
+            risk_score: Math.min(inputSnapshot.inputs.weather_risk + 0.15, 1),
+            high_risk_orders: 42
+        },
+        churn: {
+            churn_rate: 0.18,
+            high_value_customers: ['VIP-01', 'VIP-18', 'VIP-32']
+        }
+    };
+
+    return inputSnapshot;
+}
+
+async function generateStrategies() {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const emptyState = document.getElementById('empty-state');
+    const strategiesSection = document.getElementById('strategies-section');
+    const reasoningSection = document.getElementById('reasoning-section');
+    const payload = collectStrategyInputs();
+
+    lastStrategyInput = payload;
+    loadingOverlay.classList.remove('hidden');
+
+    try {
+        const response = await fetch('/ai/strategy/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        currentStrategies = data.strategies || [];
+        currentComparison = data.comparison || null;
+        currentRecommendations = data.recommendations || null;
+        currentReasoning = (data.reasoning && data.reasoning.length ? data.reasoning : currentStrategies.map(item => item.reasoning).filter(Boolean)) || [];
+        lastPlanToken = data.plan_token || null;
+        currentPlanToken = data.plan_token || null;
+
+        displayStrategies(currentStrategies);
+        displayComparison(currentComparison);
+        displayRecommendations(currentRecommendations);
+        renderReasoningCards(currentReasoning);
+
+        emptyState.classList.add('hidden');
+        strategiesSection.classList.remove('hidden');
+        if (currentReasoning.length) {
+            document.getElementById('reasoning-section').classList.remove('hidden');
+        }
+        togglePlanExportButton(currentStrategies.length > 0);
+
+        showSuccessToast(`Đã tạo ${currentStrategies.length} chiến lược thành công`);
+    } catch (error) {
+        console.error('Error generating strategies:', error);
+        showErrorToast('Lá»—i khi táº¡o chiáº¿n lÆ°á»£c: ' + error.message);
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+}
+
+function togglePlanExportButton(enabled) {
+    const exportButton = document.getElementById('btn-export-plan');
+    if (!exportButton) return;
+    if (enabled) {
+        exportButton.classList.remove('hidden');
+        exportButton.disabled = false;
+    } else {
+        exportButton.classList.add('hidden');
+        exportButton.disabled = true;
+    }
+}
+
+function formatCurrency(value) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return 'â€”';
+    }
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'USD' }).format(value);
+}
+
+function formatPercent(value, digits = 1) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return 'â€”';
+    }
+    return `${(value * 100).toFixed(digits)}%`;
+}
+
+function formatLeadTime(delta) {
+    if (typeof delta !== 'number' || Number.isNaN(delta)) {
+        return 'KhÃ´ng Ä‘á»•i';
+    }
+    if (delta === 0) {
+        return 'KhÃ´ng Ä‘á»•i';
+    }
+    return delta > 0 ? `+${delta.toFixed(1)} ngÃ y` : `${delta.toFixed(1)} ngÃ y`;
+}
+
+function getRiskBadge(level) {
+    const normalized = (level || 'medium').toLowerCase();
+    const map = {
+        low: 'bg-emerald-100 text-emerald-700',
+        medium: 'bg-amber-100 text-amber-700',
+        high: 'bg-rose-100 text-rose-700'
+    };
+    return `<span class="rounded-full px-3 py-1 text-xs font-semibold ${map[normalized] || map.medium}">${normalized === 'low' ? 'Rá»§i ro tháº¥p' : normalized === 'high' ? 'Rá»§i ro cao' : 'Rá»§i ro trung bÃ¬nh'}</span>`;
+}
+
+function displayStrategies(strategies) {
+    const grid = document.getElementById('strategies-grid');
+    grid.innerHTML = '';
+
+    if (!strategies.length) {
+        grid.innerHTML = '<p class="text-gray-600">ChÆ°a cÃ³ chiáº¿n lÆ°á»£c nÃ o Ä‘Æ°á»£c táº¡o.</p>';
+        return;
+    }
+
+    strategies.forEach(strategy => {
+        const card = document.createElement('div');
+        card.className = 'strategy-card bg-white border border-gray-200 rounded-lg p-6 cursor-pointer flex flex-col gap-4';
+        card.dataset.strategyId = strategy.id;
+
+        const tags = (strategy.tags && strategy.tags.length ? strategy.tags : strategy.objectives || []).map(mapObjectiveLabel);
+        const kpiEntries = Object.entries(strategy.kpis || {});
+        const actionPlan = Array.isArray(strategy.action_plan) ? strategy.action_plan.slice(0, 3) : [];
+
+        card.innerHTML = `
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <span class="text-2xl">ðŸ’¡</span>
+                        <span>${(strategy.time_horizon || 'medium_term').replace('_', ' ')}</span>
+                    </div>
+                    <h3 class="mt-1 text-xl font-bold text-gray-800">${strategy.name}</h3>
+                    <p class="text-sm text-gray-600">${strategy.description || 'Chiáº¿n lÆ°á»£c tá»‘i Æ°u dá»±a trÃªn má»¥c tiÃªu Ä‘Ã£ chá»n.'}</p>
+                </div>
+                <div class="text-right">
+                    ${getRiskBadge(strategy.risk_level)}
+                    <p class="mt-2 text-2xl font-bold text-gray-900">${formatCurrency(strategy.estimated_cost || strategy.estimated_budget)}</p>
+                    <p class="text-xs text-gray-500">Chi phÃ­ dá»± kiáº¿n</p>
+                </div>
+            </div>
+            <div class="grid gap-4 rounded-lg bg-gray-50 p-4 sm:grid-cols-3">
+                <div>
+                    <p class="text-xs text-gray-500">Service Level</p>
+                    <p class="text-lg font-semibold text-emerald-600">${formatPercent(strategy.service_level_impact ?? strategy.projected_service_level ?? 0.9)}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Lead time</p>
+                    <p class="text-lg font-semibold">${formatLeadTime(strategy.lead_time_impact_days ?? strategy.lead_time_delta)}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Äá»™ tin cáº­y</p>
+                    <p class="text-lg font-semibold">${formatPercent(strategy.confidence ?? 0.75, 0)}</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                ${tags.map(tag => `<span class="kpi-badge kpi-neutral">${tag}</span>`).join('')}
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-gray-700 mb-2">Action tiÃªu biá»ƒu</p>
+                ${actionPlan.length ? `<ul class="text-sm text-gray-600 space-y-1">${actionPlan.map(item => `<li>â€¢ ${item.title || item}</li>`).join('')}</ul>` : '<p class="text-sm text-gray-500">ChÆ°a cÃ³ action cá»¥ thá»ƒ.</p>'}
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-gray-700 mb-2">KPI chÃ­nh</p>
+                <div class="flex flex-wrap gap-2">
+                    ${kpiEntries.slice(0, 3).map(([key, value]) => `<span class="kpi-badge kpi-neutral">${key}: ${typeof value === 'number' ? value : value}</span>`).join('')}
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700" data-action="details">Xem Chi Tiáº¿t</button>
+                <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700" data-action="export">Xuáº¥t Káº¿ Hoáº¡ch</button>
+                <button class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-slate-200" data-action="send">Gá»­i sang Control Center</button>
+            </div>
+        `;
+
+        card.addEventListener('click', (event) => selectStrategy(strategy.id, event));
+        card.querySelector('[data-action="details"]').addEventListener('click', (event) => {
+            event.stopPropagation();
+            openStrategyModal(strategy.id);
+        });
+        card.querySelector('[data-action="export"]').addEventListener('click', (event) => {
+            event.stopPropagation();
+            exportStrategyPlan(strategy.id);
+        });
+        card.querySelector('[data-action="send"]').addEventListener('click', (event) => {
+            event.stopPropagation();
+            sendStrategyToControlCenter(strategy.id);
+        });
+
+        grid.appendChild(card);
+    });
+}
+
+function displayComparison(comparison) {
+    if (!comparison || !currentStrategies.length) return;
+    if (typeof updateComparisonChart === 'function') {
+        updateComparisonChart(currentStrategies, comparison);
+    }
+}
+
+function displayRecommendations(recommendations) {
+    const list = document.getElementById('recommendations-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (!recommendations || !recommendations.recommendations || !recommendations.recommendations.length) {
+        list.innerHTML = '<p class="text-gray-600">ChÆ°a cÃ³ hÃ nh Ä‘á»™ng nÃ o Ä‘Æ°á»£c Ä‘á» xuáº¥t.</p>';
+        document.getElementById('reasoning-content').textContent = '';
+        return;
+    }
+
+    recommendations.recommendations.forEach((rec, index) => {
+        const priorityColor = rec.priority === 'high'
+            ? 'bg-red-100 text-red-800'
+            : rec.priority === 'medium'
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-blue-100 text-blue-800';
+
+        const item = document.createElement('div');
+        item.className = 'border border-gray-200 rounded-lg p-4';
+        item.innerHTML = `
+            <div class="flex items-start justify-between mb-2">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="kpi-badge ${priorityColor}">${(rec.priority || 'medium').toUpperCase()}</span>
+                        <span class="text-sm font-semibold text-gray-700">${rec.action}</span>
+                    </div>
+                    <p class="text-gray-700">${rec.description || ''}</p>
+                </div>
+                <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm" onclick="approveRecommendation(${index})">PhÃª duyá»‡t</button>
+            </div>`;
+        list.appendChild(item);
+    });
+
+    if (recommendations.reasoning) {
+        document.getElementById('reasoning-content').innerHTML = `<pre class="whitespace-pre-wrap text-sm">${recommendations.reasoning}</pre>`;
+    }
+}
+
+// Render reasoning cards
+function renderReasoningCards(reasoningItems) {
+    const grid = document.getElementById('reasoning-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (!reasoningItems || !reasoningItems.length) {
+        grid.innerHTML = '<p class="text-gray-500 text-sm">Chưa có đề xuất mới nào đạt ngưỡng confidence.</p>';
+        return;
+    }
+
+    reasoningItems.forEach((reasoning) => {
+        const priorityColor = reasoning.priority === 'high'
+            ? 'bg-red-100 text-red-700'
+            : reasoning.priority === 'medium'
+                ? 'bg-yellow-100 text-yellow-700'
+                : 'bg-blue-100 text-blue-700';
+
+        const featureRows = (reasoning.features || [])
+            .slice(0, 3)
+            .map(feature => `
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-600">${feature.name}</span>
+                    <div class="flex items-center gap-2">
+                        <div class="w-20 bg-gray-100 rounded-full h-2">
+                            <div class="h-2 bg-blue-500 rounded-full" style="width:${Math.min(100, (feature.importance || 0) * 100)}%"></div>
+                        </div>
+                        <span class="text-gray-500 text-xs">${Math.round((feature.importance || 0) * 100)}%</span>
+                    </div>
+                </div>
+            `).join('');
+
+        const card = document.createElement('div');
+        card.className = 'border border-gray-200 rounded-2xl p-5 flex flex-col gap-4';
+        card.innerHTML = `
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 text-xs font-semibold ${priorityColor} px-3 py-1 rounded-full inline-flex">
+                        ${reasoning.priority ? reasoning.priority.toUpperCase() : 'INFO'}
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mt-2">${reasoning.title}</h3>
+                    <p class="text-sm text-gray-600">${reasoning.description || ''}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500">Confidence</p>
+                    <p class="text-2xl font-bold text-gray-900">${((reasoning.confidence || 0) * 100).toFixed(0)}%</p>
+                </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-4">
+                <p class="text-xs uppercase tracking-wide text-gray-500 mb-2">Yếu tố nổi bật</p>
+                ${featureRows || '<p class="text-sm text-gray-500">Không có dữ liệu</p>'}
+            </div>
+            <div class="text-sm text-gray-600">
+                <span class="font-semibold">Hành động:</span> ${reasoning.recommended_action || '—'}
+            </div>
+            <div class="flex flex-wrap gap-2 text-sm">
+                <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700" onclick="openReasoningModal('${reasoning.proposal_id}')">Chi tiết lý luận</button>
+                <button class="border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50" onclick="sendStrategyToControlCenter('${reasoning.strategy_id}')">Thực hiện đề xuất</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function openReasoningModal(proposalId) {
+    const reasoning = (currentReasoning || []).find(item => item.proposal_id === proposalId);
+    if (!reasoning) return;
+    selectedReasoning = reasoning;
+    const modal = document.getElementById('reasoning-modal');
+    if (!modal) return;
+    document.getElementById('reasoning-modal-title').textContent = reasoning.title || 'Đề xuất';
+    document.getElementById('reasoning-modal-desc').textContent = reasoning.description || '';
+    document.getElementById('reasoning-modal-action').textContent = reasoning.recommended_action || '—';
+    document.getElementById('reasoning-modal-confidence').textContent = `${((reasoning.confidence || 0) * 100).toFixed(0)}%`;
+
+    const table = document.getElementById('reasoning-feature-table');
+    table.innerHTML = (reasoning.features || []).map(feature => `
+        <div class="flex items-center justify-between text-sm">
+            <span>${feature.name}</span>
+            <span class="text-gray-500">${(feature.raw_value ?? '—')} / ${(feature.importance * 100 || 0).toFixed(0)}%</span>
+        </div>
+    `).join('');
+
+    if (reasoningDetailChart) {
+        reasoningDetailChart.destroy();
+    }
+    const chartCtx = document.getElementById('reasoning-feature-chart');
+    if (chartCtx) {
+        reasoningDetailChart = new Chart(chartCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: (reasoning.features || []).map(f => f.name),
+                datasets: [{
+                    label: 'Importance %',
+                    data: (reasoning.features || []).map(f => (f.importance || 0) * 100),
+                    backgroundColor: '#3b82f6'
+                }]
+            },
+            options: { plugins: { legend: { display: false } } }
+        });
+    }
+
+    updateSliderLabels();
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeReasoningModal() {
+    const modal = document.getElementById('reasoning-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function updateSliderLabels() {
+    const weatherSlider = document.getElementById('slider-weather');
+    const leadSlider = document.getElementById('slider-lead');
+    const demandSlider = document.getElementById('slider-demand');
+    if (weatherSlider) document.getElementById('slider-weather-label').textContent = `${weatherSlider.value}%`;
+    if (leadSlider) document.getElementById('slider-lead-label').textContent = leadSlider.value;
+    if (demandSlider) document.getElementById('slider-demand-label').textContent = `${demandSlider.value}%`;
+}
+
+function runWhatIfScenario() {
+    if (!selectedReasoning) return;
+    const payload = {
+        strategy_id: selectedReasoning.strategy_id,
+        plan_token: currentPlanToken,
+        adjustments: {
+            weather_risk_delta: parseFloat(document.getElementById('slider-weather').value) / 100,
+            lead_time_delta: parseFloat(document.getElementById('slider-lead').value),
+            demand_delta: parseFloat(document.getElementById('slider-demand').value) / 100
+        }
+    };
+    fetch('/ai/strategy/scenario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+        .then(resp => resp.json())
+        .then(data => {
+            const result = data.scenario_summary || {};
+            document.getElementById('whatif-result').innerHTML = `
+                <div class="text-sm">
+                    <p><strong>Service level:</strong> ${(result.service_level * 100).toFixed(1)}%</p>
+                    <p><strong>Lead time Δ:</strong> ${result.lead_time_impact_days?.toFixed(2)}</p>
+                    <p><strong>Cost:</strong> ${result.estimated_cost?.toLocaleString()}</p>
+                    <p class="text-xs text-gray-500">${result.notes || ''}</p>
+                </div>`;
+        })
+        .catch(error => {
+            console.error(error);
+            showErrorToast('Không thể chạy kịch bản');
+        });
+}
+
+function openRawDataPanel() {
+    const modal = document.getElementById('raw-data-modal');
+    if (!modal || !selectedReasoning) return;
+    const table = document.getElementById('raw-data-table');
+    const rows = Object.entries(selectedReasoning.raw_context || {}).map(([key, value]) => `
+        <tr><td class="border px-3 py-2 font-semibold">${key}</td><td class="border px-3 py-2">${value}</td></tr>
+    `).join('');
+    table.innerHTML = `<tbody>${rows}</tbody>`;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeRawDataPanel() {
+    const modal = document.getElementById('raw-data-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function applyReasoningDecision() {
+    if (!selectedReasoning) return;
+    sendStrategyToControlCenter(selectedReasoning.strategy_id);
+    closeReasoningModal();
+}
+
+function rejectReasoningDecision() {
+    showErrorToast('Đã ghi nhận lý do từ chối.');
+    closeReasoningModal();
+}
+
+function selectStrategy(strategyId, event) {
+    selectedStrategyId = strategyId;
+    document.querySelectorAll('.strategy-card').forEach(card => {
+        card.classList.toggle('selected', card.dataset.strategyId === strategyId);
+    });
+    if (event && event.target.closest('button')) {
+        return;
+    }
+    openStrategyModal(strategyId);
+}
+
+function openStrategyModal(strategyId) {
+    const strategy = currentStrategies.find(item => item.id === strategyId);
+    if (!strategy || !strategyModal) {
+        return;
+    }
+
+    strategyModal.dataset.strategyId = strategyId;
+    document.getElementById('strategy-modal-title').textContent = strategy.name;
+    document.getElementById('strategy-modal-subtitle').textContent = strategy.description || '';
+    document.getElementById('strategy-modal-confidence').textContent = `Äá»™ tin cáº­y ${(strategy.confidence * 100 || 0).toFixed(0)}%`;
+
+    populateStrategyModalOverview(strategy);
+    populateStrategyModalActions(strategy);
+    populateStrategyModalKpis(strategy);
+    renderStrategyModalChart(strategy);
+
+    strategyModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeStrategyModal() {
+    if (!strategyModal) return;
+    strategyModal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function populateStrategyModalOverview(strategy) {
+    const container = document.getElementById('strategy-modal-overview');
+    if (!container) return;
+    const overviewData = [
+        { label: 'Má»¥c tiÃªu chÃ­nh', value: (strategy.objectives || []).map(mapObjectiveLabel).join(', ') || 'Äang cáº­p nháº­t' },
+        { label: 'Chi phÃ­ dá»± kiáº¿n', value: formatCurrency(strategy.estimated_cost || strategy.estimated_budget) },
+        { label: 'Lead time ká»³ vá»ng', value: formatLeadTime(strategy.lead_time_impact_days ?? strategy.lead_time_delta) },
+        { label: 'Service level dá»± Ä‘oÃ¡n', value: formatPercent(strategy.service_level_impact ?? strategy.projected_service_level ?? 0.9) }
+    ];
+    container.innerHTML = overviewData.map(item => `<div><p class="text-xs text-gray-500">${item.label}</p><p class="text-base font-semibold text-gray-800">${item.value}</p></div>`).join('');
+}
+
+function populateStrategyModalActions(strategy) {
+    const container = document.getElementById('strategy-modal-actions');
+    if (!container) return;
+    const actions = Array.isArray(strategy.action_plan) ? strategy.action_plan : [];
+    if (!actions.length) {
+        container.innerHTML = '<p class="text-sm text-gray-500">ChÆ°a cÃ³ action cá»¥ thá»ƒ.</p>';
+        return;
+    }
+    container.innerHTML = actions.map(action => {
+        if (typeof action === 'string') {
+            return `<div class="rounded-lg border border-gray-200 p-3">${action}</div>`;
+        }
+        return `<div class="rounded-lg border border-gray-200 p-3">
+            <div class="flex items-center justify-between">
+                <p class="font-semibold text-gray-800">${action.title || 'Step'}</p>
+                <span class="text-xs uppercase text-gray-500">${action.impact || ''}</span>
+            </div>
+            <p class="text-sm text-gray-600">${action.details || action.description || ''}</p>
+        </div>`;
+    }).join('');
+}
+
+function populateStrategyModalKpis(strategy) {
+    const container = document.getElementById('strategy-modal-kpis');
+    if (!container) return;
+    const kpiEntries = Object.entries(strategy.kpis || {});
+    if (!kpiEntries.length) {
+        container.innerHTML = '<p class="text-sm text-gray-500">ChÆ°a cÃ³ KPI nÃ o.</p>';
+        return;
+    }
+    container.innerHTML = kpiEntries.map(([key, value]) => `<div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+        <p class="text-xs text-gray-500">${key}</p>
+        <p class="text-base font-semibold text-gray-800">${typeof value === 'number' ? value : value}</p>
+    </div>`).join('');
+}
+
+function renderStrategyModalChart(strategy) {
+    const canvas = document.getElementById('strategy-modal-chart');
+    if (!canvas || typeof Chart === 'undefined') {
+        document.getElementById('strategy-modal-chart-hint').textContent = 'KhÃ´ng thá»ƒ táº£i biá»ƒu Ä‘á»“ mÃ´ phá»ng.';
+        return;
+    }
+
+    const scores = strategy.simulation_scores || {};
+    const labels = ['Service', 'Cost', 'Lead Time', 'Risk'];
+    const dataset = [
+        (scores.service_level ?? strategy.service_level_impact ?? 0.9) * 100,
+        Math.abs(scores.cost_delta ?? strategy.cost_delta ?? -0.05) * 100,
+        Math.abs(scores.lead_time ?? strategy.lead_time_impact_days ?? 1) * 10,
+        (scores.risk ?? strategy.risk_score ?? 0.4) * 100
+    ];
+
+    if (strategyDetailChart) {
+        strategyDetailChart.destroy();
+    }
+
+    strategyDetailChart = new Chart(canvas.getContext('2d'), {
+        type: 'radar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'MÃ´ phá»ng AI',
+                data: dataset,
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                borderColor: '#2563eb',
+                borderWidth: 2,
+                pointBackgroundColor: '#2563eb'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                r: {
+                    angleLines: { color: '#e5e7eb' },
+                    grid: { color: '#e5e7eb' },
+                    suggestedMin: 0,
+                    suggestedMax: 100
+                }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    document.getElementById('strategy-modal-chart-hint').textContent = 'GiÃ¡ trá»‹ mÃ´ phá»ng dá»±a trÃªn dá»¯ liá»‡u Digital Twin má»›i nháº¥t.';
+}
+
+async function exportStrategyPlan(strategyId = null) {
+    const strategy = strategyId ? currentStrategies.find(item => item.id === strategyId) : currentStrategies.find(item => item.id === selectedStrategyId) || currentStrategies[0];
+    if (!strategy) {
+        showErrorToast('ChÆ°a cÃ³ chiáº¿n lÆ°á»£c Ä‘á»ƒ xuáº¥t.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/ai/strategy/export', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                strategy,
+                strategies: currentStrategies,
+                inputs: lastStrategyInput,
+                plan_token: lastPlanToken
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const downloadLink = document.createElement('a');
+        const filename = response.headers.get('X-Plan-Filename') || `PLAN_${new Date().toISOString().slice(0, 10)}.md`;
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = filename;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        downloadLink.remove();
+        showSuccessToast('ÄÃ£ xuáº¥t káº¿ hoáº¡ch chi tiáº¿t.');
+    } catch (error) {
+        console.error('Error exporting plan:', error);
+        showErrorToast('KhÃ´ng thá»ƒ xuáº¥t káº¿ hoáº¡ch: ' + error.message);
+    }
+}
+
+async function sendStrategyToControlCenter(strategyId = null) {
+    const strategy = strategyId ? currentStrategies.find(item => item.id === strategyId) : currentStrategies.find(item => item.id === selectedStrategyId);
+    if (!strategy) {
+        showErrorToast('ChÆ°a chá»n chiáº¿n lÆ°á»£c Ä‘á»ƒ gá»­i.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/os/actions/ingest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                strategy_id: strategy.id,
+                actions: strategy.action_plan || [],
+                confidence: strategy.confidence || 0.7,
+                metadata: {
+                    plan_token: lastPlanToken,
+                    requested_at: new Date().toISOString(),
+                    region: lastStrategyInput?.region,
+                    season: lastStrategyInput?.season,
+                    objectives: lastStrategyInput?.objectives,
+                    context: lastStrategyInput,
+                    mode: document.getElementById('mode-selector')?.value || 'hybrid',
+                    risk_level: strategy.risk_level || 'medium',
+                    reasoning: strategy.reasoning || selectedReasoning || null
+                }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        showSuccessToast('Chiáº¿n lÆ°á»£c Ä‘Ã£ Ä‘Æ°á»£c gá»­i sang Control Center.');
+    } catch (error) {
+        console.error('Error sending strategy:', error);
+        showErrorToast('KhÃ´ng thá»ƒ gá»­i chiáº¿n lÆ°á»£c: ' + error.message);
+    }
+}
+
+async function approveRecommendation(index) {
+    if (!currentRecommendations || !currentRecommendations.recommendations) {
+        return;
+    }
+    const rec = currentRecommendations.recommendations[index];
+    try {
+        const response = await fetch('/os/actions/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: {
+                    type: rec.action,
+                    params: rec.details || {},
+                    estimated_cost: rec.details?.cost || 0,
+                    confidence: currentRecommendations.confidence || 0.5
+                },
+                mode: 'hybrid'
+            })
+        });
+        const checkResult = await response.json();
+        if (checkResult.overall_safe && !checkResult.requires_approval) {
+            showSuccessToast('HÃ nh Ä‘á»™ng an toÃ n vÃ  Ä‘Ã£ Ä‘Æ°á»£c báº­t tá»± Ä‘á»™ng.');
+        } else {
+            showSuccessToast('ÄÃ£ gá»­i hÃ nh Ä‘á»™ng sang Control Center Ä‘á»ƒ duyá»‡t.');
+        }
+    } catch (error) {
+        console.error('Error approving recommendation:', error);
+        showErrorToast('Lá»—i khi phÃª duyá»‡t hÃ nh Ä‘á»™ng: ' + error.message);
+    }
+}
+
+function showSuccessToast(message) {
+    const toast = document.getElementById('success-toast');
+    if (!toast) return;
+    document.getElementById('success-message').textContent = message;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 5000);
+}
+
+function showErrorToast(message) {
+    const toast = document.getElementById('error-toast');
+    if (!toast) return;
+    document.getElementById('error-message').textContent = message;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 5000);
+}
+
+if (strategyModal) {
+    strategyModal.addEventListener('click', (event) => {
+        if (event.target === strategyModal) {
+            closeStrategyModal();
+        }
+    });
+}
+
+document.getElementById('btn-generate-strategies').addEventListener('click', generateStrategies);
+const exportBtn = document.getElementById('btn-export-plan');
+if (exportBtn) {
+    exportBtn.addEventListener('click', () => exportStrategyPlan());
+}
+['slider-weather', 'slider-lead', 'slider-demand'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('input', updateSliderLabels);
+    }
+});
+</script>
+
+</body>
+</html>
