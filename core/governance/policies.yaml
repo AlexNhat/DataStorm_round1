@@ -1,0 +1,66 @@
+# Policy & Governance Rules cho Supply Chain AI
+
+# Inventory Policies
+inventory:
+  min_days_cover: 7  # Tối thiểu 7 ngày tồn kho
+  max_inventory_change_pct: 30  # Không được thay đổi tồn kho quá 30% trong 1 lần
+  min_service_level: 0.85  # Service level tối thiểu 85%
+  max_overstock_pct: 20  # Không được overstock quá 20%
+
+# Pricing Policies
+pricing:
+  max_price_change_pct: 10  # Không được thay đổi giá quá 10% trong 1 ngày
+  min_price: 0.01  # Giá tối thiểu
+  max_price: 1000000  # Giá tối đa
+  require_approval_above_pct: 5  # Cần phê duyệt nếu thay đổi > 5%
+
+# Action Policies
+actions:
+  max_cost_per_action: 100000  # Chi phí tối đa cho 1 action ($)
+  require_approval_above_cost: 50000  # Cần phê duyệt nếu cost > $50k
+  min_confidence_for_auto: 0.7  # Confidence tối thiểu để auto-execute
+  require_human_review_for:
+    - inventory_reduction_above_20pct
+    - price_change_above_5pct
+    - cost_above_50000
+
+# Safety Policies
+safety:
+  anomaly_threshold: 3.0  # Z-score threshold cho anomaly detection
+  require_review_for_anomalies: true
+  max_risk_score: 0.8  # Risk score tối đa cho auto-execution
+  blacklist_actions:
+    - delete_all_inventory
+    - set_price_to_zero
+    - disable_all_warehouses
+
+# Compliance Policies
+compliance:
+  data_privacy:
+    no_pii_in_logs: true
+    anonymize_customer_data: true
+  financial:
+    max_autonomous_financial_decision: 10000  # $10k
+    require_approval_above: 10000
+  audit:
+    log_all_decisions: true
+    retain_logs_days: 365
+
+# Mode-specific Policies
+modes:
+  advisory:
+    auto_execute: false
+    require_approval: always
+  hybrid:
+    auto_execute: true
+    require_approval:
+      - cost_above_50000
+      - inventory_change_above_20pct
+      - price_change_above_5pct
+  autonomous:
+    auto_execute: true
+    require_approval:
+      - cost_above_100000
+      - inventory_change_above_30pct
+      - anomaly_detected
+

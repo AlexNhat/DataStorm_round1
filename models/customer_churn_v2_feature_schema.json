@@ -1,0 +1,28 @@
+{
+  "feature_names": [
+    "rfm_recency",
+    "rfm_frequency",
+    "rfm_monetary",
+    "rfm_recency_score",
+    "rfm_frequency_score",
+    "rfm_monetary_score",
+    "rfm_score",
+    "total_orders",
+    "total_sales",
+    "avg_order_value",
+    "sales_std",
+    "avg_profit",
+    "category_diversity",
+    "days_since_first_order"
+  ],
+  "model_type": "churn_xgb_tuned",
+  "target": "target_churn",
+  "params": {
+    "max_depth": 4,
+    "learning_rate": 0.1,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "n_estimators": 200
+  },
+  "timestamp": "2025-11-14T19:07:38.374229"
+}

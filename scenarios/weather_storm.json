@@ -1,0 +1,26 @@
+{
+  "scenario_name": "weather_storm",
+  "description": "Mưa lớn + gió mạnh ảnh hưởng đến vận chuyển",
+  "duration_days": 7,
+  "events": [
+    {
+      "day": 1,
+      "type": "weather_change",
+      "params": {
+        "location": "all",
+        "precipitation": 50,
+        "wind_speed": 30,
+        "temperature": 15
+      }
+    }
+  ],
+  "initial_state": {
+    "weather_normal": true
+  },
+  "expected_impact": {
+    "transport_delay": "high",
+    "delivery_delay_risk": "high",
+    "cost_increase": "low"
+  }
+}
+

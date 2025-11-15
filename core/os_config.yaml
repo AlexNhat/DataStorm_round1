@@ -1,0 +1,79 @@
+# OS Configuration: Autonomous Mode và Settings
+
+# Current Mode
+mode: "advisory"  # "advisory" | "hybrid" | "autonomous"
+
+# Mode Descriptions
+modes:
+  advisory:
+    description: "AI chỉ đề xuất, không tự hành động"
+    auto_execute: false
+    require_approval: always
+    
+  hybrid:
+    description: "AI tự hành động trong vùng an toàn, action quan trọng cần phê duyệt"
+    auto_execute: true
+    require_approval:
+      - cost_above_50000
+      - inventory_change_above_20pct
+      - price_change_above_5pct
+      - anomaly_detected
+    
+  autonomous:
+    description: "AI được phép hành động toàn diện trong phạm vi policy cho phép"
+    auto_execute: true
+    require_approval:
+      - cost_above_100000
+      - inventory_change_above_30pct
+      - anomaly_detected
+      - safety_check_failed
+
+# Scheduling
+scheduling:
+  enabled: true
+  timezone: "Asia/Ho_Chi_Minh"
+  tasks:
+    etl:
+      schedule: "daily"
+      time: "02:00"
+    feature_store:
+      schedule: "daily"
+      time: "03:00"
+    model_training:
+      schedule: "weekly"
+      day: "monday"
+      time: "01:00"
+    inference:
+      schedule: "daily"
+      time: "04:00"
+    cognitive_strategy:
+      schedule: "daily"
+      time: "05:00"
+
+# Logging
+logging:
+  enabled: true
+  level: "INFO"  # DEBUG | INFO | WARNING | ERROR
+  retention_days: 365
+  log_decisions: true
+  log_audit: true
+
+# Notifications
+notifications:
+  enabled: true
+  channels:
+    - email
+    - dashboard
+  triggers:
+    - task_failed
+    - policy_violation
+    - safety_alert
+    - high_risk_action
+
+# Performance
+performance:
+  max_concurrent_tasks: 5
+  task_timeout_seconds: 3600
+  retry_failed_tasks: true
+  max_retries: 3
+
