@@ -1,0 +1,6 @@
+﻿{
+  "late_delivery": {"auc": 0.9704, "pr_auc": 0.9537, "f1": 0.9740},
+  "revenue_forecast": {"mape": 0.49, "rmse": 10.5},
+  "customer_churn": {"auc": 0.9999, "f1": 0.999},
+  "thresholds": {"auc_drop": 0.01, "f1_drop": 0.02, "mape_increase": 0.5, "rmse_increase": 0.5}
+}

@@ -1,0 +1,619 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Models Overview - Supply Chain AI</title>
+    
+    <link rel="icon" href="http://testserver/static/favicon.ico">
+
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        .kpi-card {
+            transition: transform 0.2s;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+    
+    
+<style>
+    .model-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid #3b82f6;
+    }
+    .model-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+    .model-card.classification { border-left-color: #10b981; }
+    .model-card.regression { border-left-color: #f59e0b; }
+    .model-card.reinforcement_learning { border-left-color: #8b5cf6; }
+    .model-card.simulation { border-left-color: #ef4444; }
+    .model-card.cognitive { border-left-color: #06b6d4; }
+    .model-card.online_learning { border-left-color: #6366f1; }
+
+    .metric-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .metric-good { background-color: #d1fae5; color: #065f46; }
+    .metric-warning { background-color: #fef3c7; color: #92400e; }
+    .metric-poor { background-color: #fee2e2; color: #991b1b; }
+    .metric-neutral { background-color: #e5e7eb; color: #374151; }
+
+    .status-badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 9999px;
+        padding: 0.25rem 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .status-deployed { background-color: #d1fae5; color: #065f46; }
+    .status-analytics { background-color: #dbeafe; color: #1e40af; }
+    .status-development { background-color: #fef3c7; color: #92400e; }
+    .status-not_trained { background-color: #fee2e2; color: #991b1b; }
+</style>
+
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold">📊 Supply Chain Analytics Dashboard</h1>
+                <nav class="space-x-4">
+                    <a href="/dashboard" class="hover:text-blue-200">Dashboard</a>
+                    <a href="/dashboard/ai" class="hover:text-blue-200">🤖 AI Models</a>
+                    <a href="/v8/dashboard" class="hover:text-blue-200">🧠 Strategic AI</a>
+                    <a href="/os/control-center" class="hover:text-blue-200">🎮 Control Center</a>
+                    <a href="/dashboard/test-report" class="hover:text-blue-200">Test Report</a>
+                    <a href="/docs" class="hover:text-blue-200">📚 Docs</a>
+                    <a href="/notebooks" class="hover:text-blue-200">📓 Notebooks</a>
+                    <a href="/health" class="hover:text-blue-200">Health</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">AI Model Portfolio</h1>
+            <p class="text-gray-600">Toàn bộ mô hình AI đã tích hợp vào Supply Chain OS</p>
+        </div>
+        <div class="flex gap-4 text-sm text-gray-500">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-600">7</div>
+                <div>Total models</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">3</div>
+                <div>Deployed</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-indigo-600">3</div>
+                <div>Analytics</div>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a href="/doc-files/" class="inline-flex items-center bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200">
+                Tài liệu Docs
+            </a>
+            <a href="/notebooks/" class="inline-flex items-center bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200">
+                Notebooks
+            </a>
+            <a href="/dashboard/test-report" class="inline-flex items-center bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200">
+                Xem báo cáo test
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-bold mb-4">Lọc theo loại mô hình</h2>
+    <div class="flex flex-wrap gap-3">
+        <button onclick="filterModels('all', event)" class="filter-btn bg-blue-600 text-white px-4 py-2 rounded-lg">Tất cả</button>
+        <button onclick="filterModels('classification', event)" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Classification</button>
+        <button onclick="filterModels('regression', event)" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Regression</button>
+        <button onclick="filterModels('reinforcement_learning', event)" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">RL</button>
+        <button onclick="filterModels('simulation', event)" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Simulation</button>
+        <button onclick="filterModels('cognitive', event)" class="filter-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Cognitive</button>
+    </div>
+</div>
+
+
+<div id="models-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    
+    <div class="model-card classification bg-white border border-gray-200 rounded-lg p-6" data-type="classification">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-800">Du doan giao hang tre</h3>
+                <p class="text-sm text-gray-500">Phat hien don hang co nguy co giao tre dua tren order context, shipping va weather de chu dong canh bao.</p>
+            </div>
+            <span class="status-badge status-deployed">Deployed</span>
+        </div>
+
+        <div class="mb-3">
+            <div class="text-xs uppercase text-gray-500 mb-1">Key metrics</div>
+            <div class="flex flex-wrap gap-2">
+                
+                <span class="metric-badge metric-good">AUC-ROC: 0.970</span>
+                
+                <span class="metric-badge metric-good">PR-AUC: 0.954</span>
+                
+                <span class="metric-badge metric-good">F1 Score: 0.974</span>
+                
+                
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-4">
+            <div>
+                <div class="text-xs uppercase text-gray-400">Dataset</div>
+                <div class="font-medium text-gray-800">Supply Chain dataset + weather join</div>
+                
+                <div class="text-xs text-gray-500">~641k feature rows</div>
+                
+            </div>
+            <div>
+                <div class="text-xs uppercase text-gray-400">Inputs</div>
+                <ul class="list-disc list-inside">
+                    
+                    <li>Order history</li>
+                    
+                    <li>Shipping KPIs</li>
+                    
+                    <li>Weather risk</li>
+                    
+                    
+                </ul>
+            </div>
+        </div>
+
+        <div class="flex gap-2 text-sm">
+            <a href="/dashboard/ai/late_delivery" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-center hover:bg-blue-700">Chi tiết</a>
+            
+            <a href="/dashboard/ai/late_delivery#predict" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-center hover:bg-green-700">Thử dự đoán</a>
+            
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-dashed border-gray-200 text-xs text-gray-500 flex justify-between items-center">
+            <span>Version 1.0.0</span>
+            <span class="space-x-2">
+                
+                <a href="/doc-files/model_late_delivery.md" target="_blank" class="text-blue-600 hover:underline">Docs</a>
+                
+                
+                
+            </span>
+        </div>
+    </div>
+    
+    <div class="model-card regression bg-white border border-gray-200 rounded-lg p-6" data-type="regression">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-800">Du bao doanh thu</h3>
+                <p class="text-sm text-gray-500">Time-series regression de forecast revenue theo thang/vung ho tro planning va inventory.</p>
+            </div>
+            <span class="status-badge status-deployed">Deployed</span>
+        </div>
+
+        <div class="mb-3">
+            <div class="text-xs uppercase text-gray-500 mb-1">Key metrics</div>
+            <div class="flex flex-wrap gap-2">
+                
+                <span class="metric-badge metric-poor">MAPE: 0.49%</span>
+                
+                <span class="metric-badge metric-neutral">RMSE: $10.44</span>
+                
+                <span class="metric-badge metric-neutral">MAE: $0.90</span>
+                
+                
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-4">
+            <div>
+                <div class="text-xs uppercase text-gray-400">Dataset</div>
+                <div class="font-medium text-gray-800">Monthly aggregates by country</div>
+                
+                <div class="text-xs text-gray-500">~159k rows</div>
+                
+            </div>
+            <div>
+                <div class="text-xs uppercase text-gray-400">Inputs</div>
+                <ul class="list-disc list-inside">
+                    
+                    <li>Sales ledger</li>
+                    
+                    <li>Weather aggregates</li>
+                    
+                    
+                </ul>
+            </div>
+        </div>
+
+        <div class="flex gap-2 text-sm">
+            <a href="/dashboard/ai/revenue_forecast" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-center hover:bg-blue-700">Chi tiết</a>
+            
+            <a href="/dashboard/ai/revenue_forecast#predict" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-center hover:bg-green-700">Thử dự đoán</a>
+            
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-dashed border-gray-200 text-xs text-gray-500 flex justify-between items-center">
+            <span>Version 1.0.0</span>
+            <span class="space-x-2">
+                
+                <a href="/doc-files/model_revenue_forecast.md" target="_blank" class="text-blue-600 hover:underline">Docs</a>
+                
+                
+                
+            </span>
+        </div>
+    </div>
+    
+    <div class="model-card classification bg-white border border-gray-200 rounded-lg p-6" data-type="classification">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-800">Du doan churn khach hang</h3>
+                <p class="text-sm text-gray-500">Classification dua tren RFM snapshot de xac dinh khach hang co nguy co roi bo.</p>
+            </div>
+            <span class="status-badge status-deployed">Deployed</span>
+        </div>
+
+        <div class="mb-3">
+            <div class="text-xs uppercase text-gray-500 mb-1">Key metrics</div>
+            <div class="flex flex-wrap gap-2">
+                
+                <span class="metric-badge metric-good">AUC-ROC: 1.000</span>
+                
+                <span class="metric-badge metric-good">PR-AUC: 1.000</span>
+                
+                <span class="metric-badge metric-good">F1 Score: 0.998</span>
+                
+                
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-4">
+            <div>
+                <div class="text-xs uppercase text-gray-400">Dataset</div>
+                <div class="font-medium text-gray-800">Customer master + RFM features</div>
+                
+                <div class="text-xs text-gray-500">~20k customers</div>
+                
+            </div>
+            <div>
+                <div class="text-xs uppercase text-gray-400">Inputs</div>
+                <ul class="list-disc list-inside">
+                    
+                    <li>Customer 360</li>
+                    
+                    <li>Sales order history</li>
+                    
+                    
+                </ul>
+            </div>
+        </div>
+
+        <div class="flex gap-2 text-sm">
+            <a href="/dashboard/ai/customer_churn" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-center hover:bg-blue-700">Chi tiết</a>
+            
+            <a href="/dashboard/ai/customer_churn#predict" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-center hover:bg-green-700">Thử dự đoán</a>
+            
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-dashed border-gray-200 text-xs text-gray-500 flex justify-between items-center">
+            <span>Version 1.0.0</span>
+            <span class="space-x-2">
+                
+                <a href="/doc-files/model_customer_churn.md" target="_blank" class="text-blue-600 hover:underline">Docs</a>
+                
+                
+                
+            </span>
+        </div>
+    </div>
+    
+    <div class="model-card online_learning bg-white border border-gray-200 rounded-lg p-6" data-type="online_learning">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-800">Drift detection</h3>
+                <p class="text-sm text-gray-500">Streaming drift detector (KS test, PSI) de trigger retrain.</p>
+            </div>
+            <span class="status-badge status-analytics">Analytics</span>
+        </div>
+
+        <div class="mb-3">
+            <div class="text-xs uppercase text-gray-500 mb-1">Key metrics</div>
+            <div class="flex flex-wrap gap-2">
+                
+                <span class="metric-badge metric-neutral">Drift score: N/A</span>
+                
+                
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-4">
+            <div>
+                <div class="text-xs uppercase text-gray-400">Dataset</div>
+                <div class="font-medium text-gray-800">Real-time feature snapshots</div>
+                
+            </div>
+            <div>
+                <div class="text-xs uppercase text-gray-400">Inputs</div>
+                <ul class="list-disc list-inside">
+                    
+                    <li>Streaming features</li>
+                    
+                    
+                </ul>
+            </div>
+        </div>
+
+        <div class="flex gap-2 text-sm">
+            <a href="/dashboard/ai/drift_detection" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-center hover:bg-blue-700">Chi tiết</a>
+            
+            <a href="/dashboard/ai/drift_detection#predict" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-center hover:bg-green-700">Thử dự đoán</a>
+            
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-dashed border-gray-200 text-xs text-gray-500 flex justify-between items-center">
+            <span>Version 1.0.0</span>
+            <span class="space-x-2">
+                
+                <a href="/doc-files/ML_IMPROVEMENTS_V6_V7.md" target="_blank" class="text-blue-600 hover:underline">Docs</a>
+                
+                
+                
+            </span>
+        </div>
+    </div>
+    
+    <div class="model-card reinforcement_learning bg-white border border-gray-200 rounded-lg p-6" data-type="reinforcement_learning">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-800">Inventory optimization (RL)</h3>
+                <p class="text-sm text-gray-500">Reinforcement Learning agents (PPO/A2C) toi uu ton kho tren digital twin.</p>
+            </div>
+            <span class="status-badge status-development">Development</span>
+        </div>
+
+        <div class="mb-3">
+            <div class="text-xs uppercase text-gray-500 mb-1">Key metrics</div>
+            <div class="flex flex-wrap gap-2">
+                
+                <span class="metric-badge metric-neutral">Framework status: N/A</span>
+                
+                <span class="metric-badge metric-neutral">Training required: N/A</span>
+                
+                
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-4">
+            <div>
+                <div class="text-xs uppercase text-gray-400">Dataset</div>
+                <div class="font-medium text-gray-800">Simulated warehouse network</div>
+                
+            </div>
+            <div>
+                <div class="text-xs uppercase text-gray-400">Inputs</div>
+                <ul class="list-disc list-inside">
+                    
+                    <li>Digital twin</li>
+                    
+                    <li>Demand scenarios</li>
+                    
+                    
+                </ul>
+            </div>
+        </div>
+
+        <div class="flex gap-2 text-sm">
+            <a href="/dashboard/ai/inventory_rl" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-center hover:bg-blue-700">Chi tiết</a>
+            
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-dashed border-gray-200 text-xs text-gray-500 flex justify-between items-center">
+            <span>Version 1.0.0</span>
+            <span class="space-x-2">
+                
+                <a href="/doc-files/V6_V7_IMPLEMENTATION_SUMMARY.md" target="_blank" class="text-blue-600 hover:underline">Docs</a>
+                
+                
+                
+            </span>
+        </div>
+    </div>
+    
+    <div class="model-card simulation bg-white border border-gray-200 rounded-lg p-6" data-type="simulation">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-800">Digital Twin simulation</h3>
+                <p class="text-sm text-gray-500">Supply chain digital twin de chay what-if, resilience va policy testing.</p>
+            </div>
+            <span class="status-badge status-analytics">Analytics</span>
+        </div>
+
+        <div class="mb-3">
+            <div class="text-xs uppercase text-gray-500 mb-1">Key metrics</div>
+            <div class="flex flex-wrap gap-2">
+                
+                <span class="metric-badge metric-neutral">Simulation horizon (h): N/A</span>
+                
+                <span class="metric-badge metric-neutral">Steps simulated: N/A</span>
+                
+                
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-4">
+            <div>
+                <div class="text-xs uppercase text-gray-400">Dataset</div>
+                <div class="font-medium text-gray-800">Warehouses + transport graph + demand assumptions</div>
+                
+            </div>
+            <div>
+                <div class="text-xs uppercase text-gray-400">Inputs</div>
+                <ul class="list-disc list-inside">
+                    
+                    <li>Warehouse master</li>
+                    
+                    <li>Routes</li>
+                    
+                    <li>Scenario configs</li>
+                    
+                    
+                </ul>
+            </div>
+        </div>
+
+        <div class="flex gap-2 text-sm">
+            <a href="/dashboard/ai/digital_twin" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-center hover:bg-blue-700">Chi tiết</a>
+            
+            <a href="/dashboard/ai/digital_twin#predict" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-center hover:bg-green-700">Thử dự đoán</a>
+            
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-dashed border-gray-200 text-xs text-gray-500 flex justify-between items-center">
+            <span>Version 1.0.0</span>
+            <span class="space-x-2">
+                
+                <a href="/doc-files/V6_V7_IMPLEMENTATION_SUMMARY.md" target="_blank" class="text-blue-600 hover:underline">Docs</a>
+                
+                
+                
+            </span>
+        </div>
+    </div>
+    
+    <div class="model-card cognitive bg-white border border-gray-200 rounded-lg p-6" data-type="cognitive">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-800">Cognitive strategy engine</h3>
+                <p class="text-sm text-gray-500">Layer tong hop, so sanh va giai thich phuong an (balance, min cost, max service).</p>
+            </div>
+            <span class="status-badge status-analytics">Analytics</span>
+        </div>
+
+        <div class="mb-3">
+            <div class="text-xs uppercase text-gray-500 mb-1">Key metrics</div>
+            <div class="flex flex-wrap gap-2">
+                
+                <span class="metric-badge metric-neutral">Strategies generated: N/A</span>
+                
+                <span class="metric-badge metric-neutral">Engine status: N/A</span>
+                
+                
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-4">
+            <div>
+                <div class="text-xs uppercase text-gray-400">Dataset</div>
+                <div class="font-medium text-gray-800">Model outputs + business context</div>
+                
+            </div>
+            <div>
+                <div class="text-xs uppercase text-gray-400">Inputs</div>
+                <ul class="list-disc list-inside">
+                    
+                    <li>Forecast</li>
+                    
+                    <li>Delay risk</li>
+                    
+                    <li>Business objectives</li>
+                    
+                    
+                </ul>
+            </div>
+        </div>
+
+        <div class="flex gap-2 text-sm">
+            <a href="/dashboard/ai/strategy_engine" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-center hover:bg-blue-700">Chi tiết</a>
+            
+            <a href="/dashboard/ai/strategy_engine#predict" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-center hover:bg-green-700">Thử dự đoán</a>
+            
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-dashed border-gray-200 text-xs text-gray-500 flex justify-between items-center">
+            <span>Version 1.0.0</span>
+            <span class="space-x-2">
+                
+                <a href="/doc-files/STRATEGIC_AI_GUIDE.md" target="_blank" class="text-blue-600 hover:underline">Docs</a>
+                
+                
+                
+            </span>
+        </div>
+    </div>
+    
+</div>
+
+
+<div id="empty-state" class="hidden bg-white rounded-lg shadow-md p-12 text-center">
+    <div class="text-6xl mb-4">🤖</div>
+    <h3 class="text-2xl font-bold text-gray-800 mb-2">Không tìm thấy models</h3>
+    <p class="text-gray-600">Thử lựa chọn bộ lọc khác</p>
+</div>
+
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-12 py-4">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 Supply Chain Analytics. Phân tích chuỗi cung ứng và thời tiết.</p>
+        </div>
+    </footer>
+    
+    
+<script>
+const filterButtons = document.querySelectorAll('.filter-btn');
+const modelCards = document.querySelectorAll('.model-card');
+const emptyState = document.getElementById('empty-state');
+
+function filterModels(type, evt) {
+    let visible = 0;
+    modelCards.forEach(card => {
+        if (type === 'all' || card.dataset.type === type) {
+            card.classList.remove('hidden');
+            visible += 1;
+        } else {
+            card.classList.add('hidden');
+        }
+    });
+
+    filterButtons.forEach(btn => {
+        btn.classList.remove('bg-blue-600','text-white');
+        btn.classList.add('bg-gray-200','text-gray-700');
+    });
+    evt.target.classList.remove('bg-gray-200','text-gray-700');
+    evt.target.classList.add('bg-blue-600','text-white');
+
+    if (visible === 0) {
+        emptyState.classList.remove('hidden');
+    } else {
+        emptyState.classList.add('hidden');
+    }
+}
+</script>
+
+</body>
+</html>

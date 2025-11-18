@@ -1,0 +1,61 @@
+﻿{% extends "base.html" %}
+{% import "components/chart_block.html" as charts %}
+
+{% block title %}Forecast Metrics{% endblock %}
+
+{% block content %}
+<section class="ui-card mb-6">
+    <a href="/dashboard/metrics" class="text-sm text-blue-600 hover:underline flex items-center gap-2">
+        <i class="fa-solid fa-arrow-left"></i> Back to metrics overview
+    </a>
+    <div class="mt-4">
+        <p class="text-xs uppercase tracking-[0.35em] text-slate-400 mb-2">Model Metrics</p>
+        <h1 class="text-3xl font-semibold text-slate-900">Demand Forecast Ensemble</h1>
+        <p class="text-sm text-slate-500">MAE and horizon profiles across regions, powered by merged supplychain-weather features.</p>
+    </div>
+</section>
+
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {{ charts.chart_block('Forecast MAE by scope', 'forecastScopeDetail', 'Country / region MAE comparison.') }}
+    {{ charts.chart_block('Sales horizon', 'forecastHorizon', 'Rolling sales horizon projection.') }}
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script>
+const summary = {{ summary | tojson }};
+const scopeEl = document.getElementById('forecastScopeDetail');
+if (scopeEl) {
+    new Chart(scopeEl, {
+        type: 'bar',
+        data: {
+            labels: summary.forecast.scopes.map(s => s.scope),
+            datasets: [{
+                label: 'MAE',
+                data: summary.forecast.scopes.map(s => s.mae),
+                backgroundColor: '#6366f1'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+const horizonEl = document.getElementById('forecastHorizon');
+if (horizonEl) {
+    new Chart(horizonEl, {
+        type: 'line',
+        data: {
+            labels: summary.forecast.horizon.map(p => p.record_date),
+            datasets: [{
+                label: 'Sales',
+                data: summary.forecast.horizon.map(p => p.Sales),
+                borderColor: '#f97316',
+                fill: false,
+                tension: 0.3
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+</script>
+{% endblock %}

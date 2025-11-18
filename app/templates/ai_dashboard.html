@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Trung tâm Mô hình AI - Supply Chain AI{% endblock %}
+
+{% block extra_head %}
+<style>
+    .model-card {
+        border-radius: 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        padding: 1.25rem;
+        transition: transform .2s ease, box-shadow .2s ease;
+        background: white;
+    }
+    .model-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 35px rgba(15, 23, 42, 0.15);
+    }
+    .model-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.2rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+    }
+    .metric-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 0.55rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background-color: #f1f5f9;
+        color: #0f172a;
+    }
+    .status-deployed { background: #dcfce7; color: #166534; }
+    .status-analytics { background: #dbeafe; color: #1d4ed8; }
+    .status-development { background: #fef3c7; color: #92400e; }
+    .status-not_trained { background: #fee2e2; color: #b91c1c; }
+    .filter-btn {
+        border-radius: 0.75rem;
+        padding: 0.45rem 1.1rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all .2s ease;
+    }
+    .filter-btn.active {
+        background: #2563eb;
+        color: #fff;
+        box-shadow: 0 12px 20px rgba(37, 99, 235, 0.25);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div>
+            <p class="text-xs uppercase tracking-[0.5em] text-slate-400">AI MODEL HUB</p>
+            <h1 class="text-3xl font-bold text-slate-900 mt-2">Danh sách mô hình AI</h1>
+            <p class="text-slate-600 mt-3">
+                Giám sát toàn bộ mô hình dự báo, tối ưu và giám sát drift của DataStorm.
+                Chọn một mô hình để xem chi tiết, thử dự đoán và đọc hướng dẫn sử dụng.
+            </p>
+        </div>
+        <div class="grid grid-cols-2 gap-4 w-full lg:w-auto">
+            <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-emerald-700 font-medium">Đang hoạt động</div>
+                <div class="text-3xl font-bold text-emerald-700">{{ deployed_count }}</div>
+            </div>
+            <div class="bg-indigo-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-indigo-700 font-medium">Chế độ phân tích</div>
+                <div class="text-3xl font-bold text-indigo-700">{{ analytics_count }}</div>
+            </div>
+            <div class="bg-amber-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-amber-700 font-medium">Đang phát triển</div>
+                <div class="text-3xl font-bold text-amber-700">{{ models_by_status.development|length }}</div>
+            </div>
+            <div class="bg-rose-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-rose-700 font-medium">Chưa train</div>
+                <div class="text-3xl font-bold text-rose-700">{{ models_by_status.not_trained|length }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+    <h2 class="text-xl font-bold text-slate-900 mb-3">Bộ lọc nhanh</h2>
+    <div class="flex flex-wrap gap-3">
+        <button class="filter-btn active" onclick="filterModels('all', event)">Tất cả</button>
+        <button class="filter-btn" onclick="filterModels('classification', event)">Classification</button>
+        <button class="filter-btn" onclick="filterModels('regression', event)">Regression</button>
+        <button class="filter-btn" onclick="filterModels('reinforcement_learning', event)">Reinforcement Learning</button>
+        <button class="filter-btn" onclick="filterModels('online_learning', event)">Monitoring</button>
+    </div>
+</div>
+
+<div id="models-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for model in all_models %}
+    <article class="model-card" data-type="{{ model.type.value }}">
+        <div class="flex justify-between gap-4">
+            <div>
+                <div class="model-pill bg-slate-900 text-white mb-2">
+                    {{ model.type.value.replace('_', ' ')|upper }}
+                </div>
+                <h3 class="text-2xl font-bold text-slate-900">{{ model.display_name }}</h3>
+                <p class="text-sm text-slate-500 mt-1">Phiên bản {{ model.version }}</p>
+            </div>
+            <div class="model-pill status-{{ model.status.value }}">
+                {% if model.status.value == 'deployed' %}Đang hoạt động{% elif model.status.value == 'analytics' %}Analytics{% elif model.status.value == 'development' %}Phát triển{% else %}Chưa train{% endif %}
+            </div>
+        </div>
+
+        <p class="text-slate-600 mt-4">
+            {{ model.description }}
+        </p>
+
+        {% if model.metrics %}
+        <div class="flex flex-wrap gap-2 mt-4">
+            {% for metric in model.metrics[:3] %}
+                <span class="metric-chip">
+                    {{ metric.name }}:
+                    {% if metric.target %}
+                        < {{ metric.target }}{{ metric.unit or "" }}
+                    {% elif metric.value is not none %}
+                        {{ "%.4f"|format(metric.value) }}{{ metric.unit or "" }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-2 gap-3 mt-6">
+            <a href="/dashboard/ai/{{ model.id }}" class="text-center bg-blue-600 text-white py-2 rounded-xl font-semibold hover:bg-blue-700">
+                Chi tiết
+            </a>
+            {% if model.api_endpoint %}
+            <a href="/dashboard/ai/{{ model.id }}#predict" class="text-center bg-emerald-500 text-white py-2 rounded-xl font-semibold hover:bg-emerald-600">
+                Thử dự đoán
+            </a>
+            {% else %}
+            <div class="text-center bg-slate-100 text-slate-400 py-2 rounded-xl font-semibold">
+                Chỉ theo dõi
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-500 mt-4 pt-4 border-t border-slate-100">
+            <span>Model file: {{ "Có" if model_files_status[model.id] else "Không" }}</span>
+            {% if model.docs_path %}
+            <a href="/{{ model.docs_path }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">
+                <i class="fa-regular fa-file-lines"></i> Tài liệu
+            </a>
+            {% endif %}
+        </div>
+    </article>
+    {% endfor %}
+</div>
+
+<div id="empty-state" class="hidden bg-white rounded-2xl shadow-lg p-12 text-center mt-6">
+    <div class="text-6xl mb-3">🤔</div>
+    <h3 class="text-2xl font-bold text-slate-900 mb-1">Không tìm thấy mô hình phù hợp</h3>
+    <p class="text-slate-600">Hãy đổi bộ lọc hoặc kiểm tra trạng thái train của mô hình.</p>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function filterModels(type, evt) {
+    const cards = document.querySelectorAll('.model-card');
+    const empty = document.getElementById('empty-state');
+    let visible = 0;
+
+    cards.forEach(card => {
+        if (type === 'all' || card.dataset.type === type) {
+            card.classList.remove('hidden');
+            visible++;
+        } else {
+            card.classList.add('hidden');
+        }
+    });
+
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    evt.target.classList.add('active');
+
+    if (visible === 0) {
+        empty.classList.remove('hidden');
+    } else {
+        empty.classList.add('hidden');
+    }
+}
+</script>
+{% endblock %}

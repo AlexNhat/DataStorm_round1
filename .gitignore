@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -7,6 +8,19 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+=======
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+>>>>>>> remotes/origin/feature/readme-structure-update
 .Python
 build/
 develop-eggs/
@@ -20,6 +34,7 @@ parts/
 sdist/
 var/
 wheels/
+<<<<<<< HEAD
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -205,3 +220,36 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+=======
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Data files (uncomment if you don't want to track data)
+# data/*.csv
+
+# Project specific ignores
+results/
+data/raw/
+temp/
+backup/
+
+>>>>>>> remotes/origin/feature/readme-structure-update

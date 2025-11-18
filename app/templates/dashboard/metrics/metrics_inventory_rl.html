@@ -1,0 +1,61 @@
+﻿{% extends "base.html" %}
+{% import "components/chart_block.html" as charts %}
+
+{% block title %}Inventory RL Metrics{% endblock %}
+
+{% block content %}
+<section class="ui-card mb-6">
+    <a href="/dashboard/metrics" class="text-sm text-blue-600 hover:underline flex items-center gap-2">
+        <i class="fa-solid fa-arrow-left"></i> Back to metrics overview
+    </a>
+    <div class="mt-4">
+        <p class="text-xs uppercase tracking-[0.35em] text-slate-400 mb-2">Model Metrics</p>
+        <h1 class="text-3xl font-semibold text-slate-900">Inventory Optimizer RL</h1>
+        <p class="text-sm text-slate-500">Reward trajectory and regional workload powered by the GLOBAL dataset.</p>
+    </div>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {{ charts.chart_block('Reward curve', 'rlRewardCurveDetail', 'Average reward per training iteration.') }}
+    {{ charts.chart_block('Regional performance', 'rlRegionPerf', 'Fulfillment workload index per region.') }}
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script>
+const summary = {{ summary | tojson }};
+const rewardEl = document.getElementById('rlRewardCurveDetail');
+if (rewardEl) {
+    new Chart(rewardEl, {
+        type: 'line',
+        data: {
+            labels: summary.inventory_rl.reward_curve.map((_, i) => i + 1),
+            datasets: [{
+                label: 'Reward',
+                data: summary.inventory_rl.reward_curve,
+                borderColor: '#2563eb',
+                fill: false,
+                tension: 0.3
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+const regionEl = document.getElementById('rlRegionPerf');
+if (regionEl) {
+    new Chart(regionEl, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(summary.inventory_rl.region_performance),
+            datasets: [{
+                label: 'Workload index',
+                data: Object.values(summary.inventory_rl.region_performance),
+                backgroundColor: '#10b981'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+</script>
+{% endblock %}

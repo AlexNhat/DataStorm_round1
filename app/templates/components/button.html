@@ -1,0 +1,28 @@
+{% macro button(label, href=None, variant='primary', size='md', icon='') -%}
+{% set base = "inline-flex items-center justify-center font-semibold rounded-2xl transition transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2" %}
+{% if variant == 'primary' %}
+    {% set classes = base + " bg-gradient-to-r from-blue-600 to-indigo-500 text-white shadow-lg hover:shadow-xl focus-visible:ring-blue-500" %}
+{% elif variant == 'secondary' %}
+    {% set classes = base + " bg-white/60 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700" %}
+{% else %}
+    {% set classes = base + " bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" %}
+{% endif %}
+{% if size == 'sm' %}
+    {% set classes = classes + " px-3 py-1.5 text-sm" %}
+{% elif size == 'lg' %}
+    {% set classes = classes + " px-6 py-3 text-base" %}
+{% else %}
+    {% set classes = classes + " px-4 py-2 text-sm" %}
+{% endif %}
+{% if href %}
+<a href="{{ href }}" class="{{ classes }}">
+    {% if icon %}<span class="mr-2">{{ icon|safe }}</span>{% endif %}
+    {{ label }}
+</a>
+{% else %}
+<button class="{{ classes }}">
+    {% if icon %}<span class="mr-2">{{ icon|safe }}</span>{% endif %}
+    {{ label }}
+</button>
+{% endif %}
+{%- endmacro %}

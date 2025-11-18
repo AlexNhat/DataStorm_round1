@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Late Delivery Prediction - ML Models{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">🚚 Late Delivery Prediction</h1>
+        <p class="text-gray-600">Dự đoán nguy cơ giao hàng trễ dựa trên thông tin đơn hàng, shipping và thời tiết</p>
+    </div>
+
+    <!-- Prediction Form -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4">📝 Nhập thông tin đơn hàng</h2>
+        
+        <form id="prediction-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Order Info -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Order ID</label>
+                <input type="text" id="order_id" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Optional">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Customer ID</label>
+                <input type="text" id="customer_id" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Optional">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Order Date</label>
+                <input type="date" id="order_date" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            
+            <!-- Shipping Info -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Shipping Duration (Scheduled)</label>
+                <input type="number" id="shipping_duration_scheduled" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Days" step="0.1">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Shipping Duration (Real)</label>
+                <input type="number" id="shipping_duration_real" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Days" step="0.1">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
+                <input type="text" id="category_name" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Optional">
+            </div>
+            
+            <!-- Weather Info -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Temperature (°C)</label>
+                <input type="number" id="temperature" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="°C" step="0.1">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Precipitation (mm)</label>
+                <input type="number" id="precipitation" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="mm" step="0.1">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Wind Speed (m/s)</label>
+                <input type="number" id="wind_speed" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="m/s" step="0.1">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Weather Risk Level (1-5)</label>
+                <input type="number" id="weather_risk_level" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1-5" min="1" max="5">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Is Weekend?</label>
+                <select id="is_weekend" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    <option value="">Select</option>
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Month</label>
+                <input type="number" id="month" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="1-12" min="1" max="12">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sales ($)</label>
+                <input type="number" id="sales" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="0.00" step="0.01">
+            </div>
+        </form>
+        
+        <div class="mt-6">
+            <button id="btn-predict" class="bg-blue-600 text-white px-8 py-3 rounded-md hover:bg-blue-700 font-semibold">
+                🔮 Dự đoán
+            </button>
+            <button id="btn-reset" class="bg-gray-500 text-white px-8 py-3 rounded-md hover:bg-gray-600 ml-2">
+                🔄 Đặt lại
+            </button>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-section" class="bg-white rounded-lg shadow-md p-6 hidden">
+        <h2 class="text-xl font-bold mb-4">📊 Kết quả dự đoán</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg p-6">
+                <p class="text-sm opacity-90 mb-2">Nguy cơ giao trễ</p>
+                <p class="text-3xl font-bold" id="risk-probability">-</p>
+                <p class="text-sm mt-2 opacity-90" id="risk-label">-</p>
+            </div>
+            
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-6">
+                <p class="text-sm opacity-90 mb-2">Xác suất trễ</p>
+                <p class="text-3xl font-bold" id="late-probability">-</p>
+                <p class="text-sm mt-2 opacity-90">Probability</p>
+            </div>
+            
+            <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-6">
+                <p class="text-sm opacity-90 mb-2">Xác suất đúng giờ</p>
+                <p class="text-3xl font-bold" id="ontime-probability">-</p>
+                <p class="text-sm mt-2 opacity-90">Probability</p>
+            </div>
+        </div>
+        
+        <div id="top-features" class="mt-6">
+            <h3 class="text-lg font-semibold mb-3">🔍 Top Features ảnh hưởng</h3>
+            <div id="features-list" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-700">Đang xử lý dự đoán...</p>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="error-toast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg z-50 hidden">
+        <div class="flex items-center justify-between">
+            <span id="error-message"></span>
+            <button onclick="document.getElementById('error-toast').classList.add('hidden')" class="ml-4 text-white hover:text-gray-200">✕</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('btn-predict').addEventListener('click', async function() {
+    const form = document.getElementById('prediction-form');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const resultsSection = document.getElementById('results-section');
+    const errorToast = document.getElementById('error-toast');
+    
+    // Collect form data
+    const payload = {};
+    const inputs = form.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        if (input.value && input.value.trim() !== '') {
+            const key = input.id;
+            let value = input.value;
+            
+            // Convert to appropriate type
+            if (input.type === 'number') {
+                value = parseFloat(value);
+            } else if (input.id === 'is_weekend') {
+                value = parseInt(value);
+            }
+            
+            payload[key] = value;
+        }
+    });
+    
+    // Show loading
+    loadingOverlay.classList.remove('hidden');
+    resultsSection.classList.add('hidden');
+    errorToast.classList.add('hidden');
+    
+    try {
+        const response = await fetch('/ml/logistics/delay', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.status === 'success') {
+            const prediction = data.prediction;
+            
+            // Display results
+            const lateProb = (prediction.late_risk_prob || 0) * 100;
+            const ontimeProb = (1 - (prediction.late_risk_prob || 0)) * 100;
+            
+            document.getElementById('risk-probability').textContent = lateProb.toFixed(1) + '%';
+            document.getElementById('risk-label').textContent = prediction.late_risk_label || 'Unknown';
+            document.getElementById('late-probability').textContent = lateProb.toFixed(1) + '%';
+            document.getElementById('ontime-probability').textContent = ontimeProb.toFixed(1) + '%';
+            
+            // Display top features if available
+            if (prediction.top_features) {
+                const featuresList = document.getElementById('features-list');
+                featuresList.innerHTML = '';
+                prediction.top_features.forEach((feature, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-md';
+                    div.innerHTML = `
+                        <span class="font-medium">${index + 1}. ${feature.name || feature}</span>
+                        <span class="text-blue-600 font-semibold">${typeof feature === 'object' ? feature.importance?.toFixed(3) || feature.value : feature}</span>
+                    `;
+                    featuresList.appendChild(div);
+                });
+            }
+            
+            resultsSection.classList.remove('hidden');
+        } else {
+            throw new Error(data.detail || 'Prediction failed');
+        }
+    } catch (error) {
+        document.getElementById('error-message').textContent = 'Lỗi: ' + error.message;
+        errorToast.classList.remove('hidden');
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
+document.getElementById('btn-reset').addEventListener('click', function() {
+    const form = document.getElementById('prediction-form');
+    form.reset();
+    document.getElementById('results-section').classList.add('hidden');
+});
+</script>
+{% endblock %}
+

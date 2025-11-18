@@ -1,0 +1,30 @@
+{% macro table(headers, rows, empty_text='No data available') -%}
+<div class="overflow-x-auto rounded-3xl border border-slate-200 dark:border-slate-700">
+    <table class="min-w-full text-sm text-slate-700 dark:text-slate-200">
+        <thead class="bg-slate-50 dark:bg-slate-800 text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+            <tr>
+            {% for head in headers %}
+                <th class="px-4 py-3 text-left">{{ head }}</th>
+            {% endfor %}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            {% if rows %}
+                {% for row in rows %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition">
+                    {% for cell in row %}
+                    <td class="px-4 py-4 align-top">{{ cell|safe }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="{{ headers|length }}" class="px-4 py-6 text-center text-slate-400 dark:text-slate-600">
+                        {{ empty_text }}
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{%- endmacro %}

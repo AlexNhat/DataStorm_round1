@@ -1,0 +1,51 @@
+﻿{% extends "base.html" %}
+{% import "components/table_responsive.html" as table %}
+{% import "components/badge_status.html" as badge %}
+
+{% block title %}AI Model Catalog{% endblock %}
+
+{% block content %}
+<section class="ui-card mb-6">
+    <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+            <p class="text-xs uppercase tracking-[0.35em] text-slate-400 mb-2">Model Registry</p>
+            <h1 class="text-3xl font-semibold text-slate-900">AI Model Catalog</h1>
+            <p class="text-sm text-slate-500">Synced with the latest GLOBAL retraining wave.</p>
+        </div>
+        <div class="text-right">
+            <p class="text-xs text-slate-400 uppercase">Total models</p>
+            <p class="text-3xl font-semibold text-blue-600">{{ total }}</p>
+        </div>
+    </div>
+</section>
+
+{% set headers = ['Model', 'Version', 'Region', 'Accuracy', 'Updated', 'Status', 'Notes'] %}
+{% set rows = namespace(items=[]) %}
+{% for model in models %}
+    {% set model_link %}
+        <div class="min-w-[180px]">
+            <a href="/dashboard/models/{{ model.name|lower|replace(' ', '-') }}" class="font-semibold text-slate-900 hover:text-blue-600 transition">
+                {{ model.name }}
+            </a>
+            <p class="text-xs text-slate-400 mt-0.5">Owner: {{ model.owner or 'N/A' }}</p>
+        </div>
+    {% endset %}
+    {% set _ = rows.items.append([
+        model_link,
+        model.version,
+        model.region,
+        '%.3f'|format(model.accuracy),
+        model.last_update or 'N/A',
+        badge.badge(model.status),
+        '<span class="text-xs text-slate-500">' ~ (model.note or 'N/A') ~ '</span>'
+    ]) %}
+{% endfor %}
+
+<section class="ui-card space-y-4">
+    <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-slate-900">GLOBAL registry snapshot</h2>
+        <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Auto synced</span>
+    </div>
+    {{ table.table(headers, rows.items, 'No registered models found.') }}
+</section>
+{% endblock %}

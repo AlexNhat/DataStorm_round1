@@ -1,0 +1,31 @@
+{
+  "feature_names": [
+    "Sales",
+    "order_count",
+    "customer_count",
+    "revenue_lag_1d",
+    "order_count_lag_1d",
+    "revenue_lag_7d",
+    "order_count_lag_7d",
+    "revenue_lag_30d",
+    "order_count_lag_30d",
+    "revenue_7d_avg",
+    "revenue_30d_avg",
+    "revenue_7d_std",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "wind_speed_10m_mean",
+    "relative_humidity_2m_mean",
+    "is_weekend",
+    "is_month_start",
+    "is_month_end",
+    "month_sin",
+    "month_cos",
+    "day_of_week_sin",
+    "day_of_week_cos",
+    "is_holiday_season"
+  ],
+  "model_type": "random_forest",
+  "target": "target_revenue",
+  "created_at": "2025-11-14T17:19:04.605048"
+}

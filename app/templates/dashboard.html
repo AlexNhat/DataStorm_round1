@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Supply Chain Analytics{% endblock %}
+
+{% block content %}
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg p-8 text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-700">Đang tải dữ liệu...</p>
+    </div>
+</div>
+
+<!-- Error Toast -->
+<div id="error-toast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg z-50 hidden">
+    <div class="flex items-center justify-between">
+        <span id="error-message"></span>
+        <button onclick="document.getElementById('error-toast').classList.add('hidden')" class="ml-4 text-white hover:text-gray-200">✕</button>
+    </div>
+</div>
+
+<!-- Filters Section -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-bold mb-4">🔍 Bộ lọc</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Quốc gia</label>
+            <select id="filter-country" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                <option value="">Tất cả</option>
+                {% for country in countries %}
+                <option value="{{ country }}">{{ country }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Danh mục</label>
+            <select id="filter-category" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                <option value="">Tất cả</option>
+                {% for category in categories %}
+                <option value="{{ category }}">{{ category }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái giao hàng</label>
+            <select id="filter-delivery-status" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                <option value="">Tất cả</option>
+                {% for status in delivery_statuses %}
+                <option value="{{ status }}">{{ status }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Khoảng thời gian</label>
+            <div class="flex gap-2">
+                <input type="date" id="filter-start-date" class="flex-1 border border-gray-300 rounded-md px-3 py-2" 
+                       value="{{ date_range.min }}">
+                <input type="date" id="filter-end-date" class="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                       value="{{ date_range.max }}">
+            </div>
+        </div>
+    </div>
+    <div class="mt-4">
+        <button id="btn-apply-filter" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+            Áp dụng bộ lọc
+        </button>
+        <button id="btn-reset-filter" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 ml-2">
+            Đặt lại
+        </button>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <div class="kpi-card bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Tổng doanh thu</p>
+                <p class="text-2xl font-bold text-green-600" id="kpi-total-sales">
+                    ${{ "{:,.2f}".format(kpis.get('total_sales', 0)) if kpis.get('total_sales') else "0.00" }}
+                </p>
+            </div>
+            <div class="text-4xl">💰</div>
+        </div>
+    </div>
+    
+    <div class="kpi-card bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Tổng lợi nhuận</p>
+                <p class="text-2xl font-bold text-blue-600" id="kpi-total-benefit">
+                    ${{ "{:,.2f}".format(kpis.get('total_benefit', 0)) if kpis.get('total_benefit') else "0.00" }}
+                </p>
+            </div>
+            <div class="text-4xl">📈</div>
+        </div>
+    </div>
+    
+    <div class="kpi-card bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Tổng số đơn</p>
+                <p class="text-2xl font-bold text-purple-600" id="kpi-total-orders">
+                    {{ "{:,}".format(kpis.get('total_orders', 0)) if kpis.get('total_orders') else "0" }}
+                </p>
+            </div>
+            <div class="text-4xl">📦</div>
+        </div>
+    </div>
+    
+    <div class="kpi-card bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Tỉ lệ giao trễ</p>
+                <p class="text-2xl font-bold text-red-600" id="kpi-late-rate">
+                    {{ "{:.2f}".format(kpis.get('late_delivery_rate', 0)) if kpis.get('late_delivery_rate') else "0.00" }}%
+                </p>
+            </div>
+            <div class="text-4xl">⚠️</div>
+        </div>
+    </div>
+</div>
+
+<!-- V8 + V9 Quick Access -->
+<div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-lg p-6 mb-6 text-white">
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold mb-2">🚀 AI Features (V8 + V9)</h2>
+            <p class="text-blue-100">Truy cập nhanh các tính năng AI nâng cao</p>
+        </div>
+        <div class="flex gap-4">
+            <a href="/v8/dashboard" class="bg-white text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50 font-semibold transition">
+                🧠 Strategic AI
+            </a>
+            <a href="/os/control-center" class="bg-white text-purple-600 px-6 py-3 rounded-lg hover:bg-purple-50 font-semibold transition">
+                🎮 Control Center
+            </a>
+        </div>
+    </div>
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white bg-opacity-20 rounded-lg p-4">
+            <div class="text-sm font-semibold mb-1">🧠 Cognitive AI</div>
+            <div class="text-xs text-blue-100">Strategic reasoning & planning</div>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-lg p-4">
+            <div class="text-sm font-semibold mb-1">🎮 Control Center</div>
+            <div class="text-xs text-blue-100">Human-in-the-loop management</div>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-lg p-4">
+            <div class="text-sm font-semibold mb-1">🤖 Autonomous OS</div>
+            <div class="text-xs text-blue-100">Fully autonomous operations</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Time Series Chart -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold mb-4">📅 Xu hướng theo thời gian</h3>
+        <canvas id="timeSeriesChart"></canvas>
+    </div>
+    
+    <!-- Delivery Status Distribution -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold mb-4">📊 Phân bố trạng thái giao hàng</h3>
+        <canvas id="deliveryStatusChart"></canvas>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Top Countries -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold mb-4">🌍 Top 10 quốc gia theo doanh thu</h3>
+        <canvas id="topCountriesChart"></canvas>
+    </div>
+    
+    <!-- Top Categories -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold mb-4">📦 Top 10 danh mục theo doanh thu</h3>
+        <canvas id="topCategoriesChart"></canvas>
+    </div>
+</div>
+
+<!-- Weather Correlation (if available) -->
+{% if weather_correlation and 'error' not in weather_correlation %}
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h3 class="text-lg font-bold mb-4">🌤️ Tương quan thời tiết và giao hàng</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-blue-50 p-4 rounded">
+            <p class="text-sm text-gray-600">Nhiệt độ vs Giao trễ</p>
+            <p class="text-xl font-bold">
+                {% if weather_correlation and weather_correlation.get('temperature_vs_late_delivery') %}
+                {{ "{:.3f}".format(weather_correlation.get('temperature_vs_late_delivery')) }}
+                {% else %}
+                N/A
+                {% endif %}
+            </p>
+        </div>
+        <div class="bg-green-50 p-4 rounded">
+            <p class="text-sm text-gray-600">Lượng mưa vs Giao trễ</p>
+            <p class="text-xl font-bold">
+                {% if weather_correlation and weather_correlation.get('precipitation_vs_late_delivery') %}
+                {{ "{:.3f}".format(weather_correlation.get('precipitation_vs_late_delivery')) }}
+                {% else %}
+                N/A
+                {% endif %}
+            </p>
+        </div>
+        <div class="bg-yellow-50 p-4 rounded">
+            <p class="text-sm text-gray-600">Tốc độ gió vs Giao trễ</p>
+            <p class="text-xl font-bold">
+                {% if weather_correlation and weather_correlation.get('wind_speed_vs_late_delivery') %}
+                {{ "{:.3f}".format(weather_correlation.get('wind_speed_vs_late_delivery')) }}
+                {% else %}
+                N/A
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    <p class="text-sm text-gray-500 mt-4">
+        Tỉ lệ merge: {{ "{:.2f}".format(weather_correlation.get('merge_rate', 0)) if weather_correlation and weather_correlation.get('merge_rate') else "0" }}%
+        ({{ "{:,}".format(weather_correlation.get('merged_records', 0)) if weather_correlation and weather_correlation.get('merged_records') else "0" }} bản ghi)
+    </p>
+</div>
+{% endif %}
+
+<!-- Advanced Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Correlation Heatmap -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold mb-4">🔥 Correlation Heatmap</h3>
+        <p class="text-sm text-gray-500 mb-4">Tương quan giữa các biến thời tiết và metrics giao hàng</p>
+        <canvas id="correlationHeatmapChart"></canvas>
+    </div>
+    
+    <!-- Seasonality Chart -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold mb-4">📅 Tính thời vụ (Seasonality)</h3>
+        <p class="text-sm text-gray-500 mb-4">Xu hướng doanh thu theo tháng</p>
+        <canvas id="seasonalityChart"></canvas>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Scatter Plot -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold mb-4">📊 Scatter: Nhiệt độ vs Giao trễ</h3>
+        <p class="text-sm text-gray-500 mb-4">Phân tích mối quan hệ phi tuyến</p>
+        <canvas id="scatterChart"></canvas>
+    </div>
+    
+    <!-- Box Plot -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold mb-4">📦 Phân bố Doanh thu theo Category</h3>
+        <p class="text-sm text-gray-500 mb-4">So sánh variance giữa các category</p>
+        <canvas id="boxPlotChart"></canvas>
+    </div>
+</div>
+
+<!-- Waterfall Chart -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h3 class="text-lg font-bold mb-4">💧 Waterfall: Phân tích Lợi nhuận</h3>
+    <p class="text-sm text-gray-500 mb-4">Breakdown lợi nhuận theo các thành phần</p>
+    <canvas id="waterfallChart"></canvas>
+</div>
+
+<!-- Sample Orders Table -->
+<div class="bg-white rounded-lg shadow-md p-6">
+    <h3 class="text-lg font-bold mb-4">📋 Mẫu đơn hàng gần nhất (50 đơn)</h3>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quốc gia</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Danh mục</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày đơn</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giao trễ</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Doanh thu</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for order in sample_orders %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm">{{ order.get('Order Id', 'N/A') }}</td>
+                    <td class="px-4 py-3 text-sm">{{ order.get('Order Country', 'N/A') }}</td>
+                    <td class="px-4 py-3 text-sm">{{ order.get('Category Name', 'N/A') }}</td>
+                    <td class="px-4 py-3 text-sm">{{ order.get('order date (DateOrders)', 'N/A') }}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 text-xs rounded {% if order.get('Delivery Status') == 'Late delivery' %}bg-red-100 text-red-800{% elif order.get('Delivery Status') == 'Advance shipping' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ order.get('Delivery Status', 'N/A') }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        {% if order.get('Late_delivery_risk') == '1' or order.get('Late_delivery_risk') == 1 %}
+                        <span class="text-red-600">✓</span>
+                        {% else %}
+                        <span class="text-green-600">✗</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        {% set sales_value = order.get('Sales') %}
+                        {% if sales_value is not none and sales_value != '' %}
+                            ${{ "{:,.2f}".format(sales_value) }}
+                        {% else %}
+                            $0.00
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/dashboard_charts.js"></script>
+<script src="/static/js/advanced_charts.js"></script>
+<script>
+    // Utility functions
+    function showLoading() {
+        document.getElementById('loading-overlay').classList.remove('hidden');
+    }
+    
+    function hideLoading() {
+        document.getElementById('loading-overlay').classList.add('hidden');
+    }
+    
+    function showError(message) {
+        const toast = document.getElementById('error-toast');
+        document.getElementById('error-message').textContent = message;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 5000);
+    }
+    
+    // Debounce function
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        hideLoading();
+        // Load advanced charts after a delay
+        setTimeout(loadAdvancedCharts, 1000);
+    });
+</script>
+<script>
+    // Dữ liệu từ server
+    const dashboardData = {
+        timeSeries: {{ time_series | tojson }},
+        deliveryStatusDist: {{ delivery_status_dist | tojson }},
+        topCountries: {{ top_countries | tojson }},
+        topProducts: {{ top_products | tojson }},
+        kpis: {{ kpis | tojson }}
+    };
+    
+    // Khởi tạo charts
+    initializeCharts(dashboardData);
+    
+    // Filter function with loading state
+    async function applyFilters() {
+        const country = document.getElementById('filter-country').value;
+        const category = document.getElementById('filter-category').value;
+        const deliveryStatus = document.getElementById('filter-delivery-status').value;
+        const startDate = document.getElementById('filter-start-date').value;
+        const endDate = document.getElementById('filter-end-date').value;
+        
+        const params = new URLSearchParams();
+        if (country) params.append('country', country);
+        if (category) params.append('category', category);
+        if (deliveryStatus) params.append('delivery_status', deliveryStatus);
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        
+        showLoading();
+        try {
+            const response = await fetch(`/dashboard/api/filter?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            // Update KPI cards with animation
+            if (data.kpis) {
+                animateValue('kpi-total-sales', '$' + data.kpis.total_sales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                animateValue('kpi-total-benefit', '$' + data.kpis.total_benefit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                animateValue('kpi-total-orders', data.kpis.total_orders.toLocaleString('en-US'));
+                animateValue('kpi-late-rate', data.kpis.late_delivery_rate.toFixed(2) + '%');
+            }
+            
+            // Update charts
+            updateCharts(data);
+            
+        } catch (error) {
+            console.error('Error applying filter:', error);
+            showError('Lỗi khi áp dụng bộ lọc: ' + error.message);
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    // Animate value change
+    function animateValue(elementId, newValue) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        
+        element.style.transition = 'all 0.3s ease';
+        element.textContent = newValue;
+    }
+    
+    // Debounced filter function
+    const debouncedApplyFilters = debounce(applyFilters, 500);
+    
+    // Filter handlers
+    document.getElementById('btn-apply-filter').addEventListener('click', applyFilters);
+    
+    // Auto-apply on filter change (with debounce)
+    document.getElementById('filter-country').addEventListener('change', debouncedApplyFilters);
+    document.getElementById('filter-category').addEventListener('change', debouncedApplyFilters);
+    document.getElementById('filter-delivery-status').addEventListener('change', debouncedApplyFilters);
+    document.getElementById('filter-start-date').addEventListener('change', debouncedApplyFilters);
+    document.getElementById('filter-end-date').addEventListener('change', debouncedApplyFilters);
+    
+    document.getElementById('btn-reset-filter').addEventListener('click', function() {
+        document.getElementById('filter-country').value = '';
+        document.getElementById('filter-category').value = '';
+        document.getElementById('filter-delivery-status').value = '';
+        document.getElementById('filter-start-date').value = '{{ date_range.min }}';
+        document.getElementById('filter-end-date').value = '{{ date_range.max }}';
+        
+        // Reload page to reset
+        window.location.reload();
+    });
+    
+    // Error handling for chart initialization
+    window.addEventListener('error', function(e) {
+        console.error('Chart error:', e);
+        showError('Lỗi khi khởi tạo biểu đồ. Vui lòng refresh trang.');
+    });
+</script>
+{% endblock %}
+

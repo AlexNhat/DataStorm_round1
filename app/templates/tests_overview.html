@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Test Overview{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">Hệ thống kiểm thử</h1>
+    <p class="text-gray-600">Tóm tắt chiến lược test và log UI mới nhất.</p>
+    <p class="text-sm text-gray-500">File gốc: <code>tests/README_TESTING.md</code></p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-3">Chiến lược test</h2>
+        {% if testing_doc %}
+        <pre class="text-sm text-gray-700 whitespace-pre-wrap overflow-auto max-h-96">{{ testing_doc }}</pre>
+        {% else %}
+        <p class="text-gray-500 text-sm">Chưa tìm thấy tests/README_TESTING.md</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-3">UI test log gần nhất</h2>
+        {% if ui_log_available %}
+        <pre class="text-sm text-gray-700 whitespace-pre-wrap overflow-auto max-h-96">{{ ui_log }}</pre>
+        {% else %}
+        <p class="text-gray-500 text-sm">Chưa có log trong results/test_reports/ui_tests.txt</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

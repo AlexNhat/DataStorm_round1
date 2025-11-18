@@ -1,0 +1,31 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+jinja2==3.1.2
+pandas==2.2.3
+numpy==2.1.3
+python-multipart==0.0.6
+aiofiles==23.2.1
+# ML Libraries
+scikit-learn==1.5.2
+xgboost==2.1.1
+pyarrow==22.0.0
+joblib==1.4.2
+shap==0.44.0
+# V6 Dependencies - Self-Learning AI
+river==0.23.0              # Online learning
+evidently==0.4.33          # Drift detection
+scipy==1.14.1              # Statistical tests
+# V7 Dependencies - Digital Twin & RL
+gymnasium==0.29.1          # RL environments
+stable-baselines3==2.5.0   # RL algorithms
+torch==2.9.1               # Deep RL
+tensorboard==2.17.0        # RL training visualization
+# Utilities
+matplotlib==3.9.2
+seaborn==0.13.2
+plotly==5.24.1             # Interactive visualizations
+# V8 + V9 Dependencies
+schedule==1.2.1            # Task scheduling
+pyyaml==6.0.2              # YAML parsing
+
+joblib==1.4.2

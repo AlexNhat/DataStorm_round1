@@ -1,0 +1,22 @@
+{
+  "scenario_name": "port_congestion",
+  "description": "Tắc nghẽn cảng làm chậm vận chuyển",
+  "duration_days": 14,
+  "events": [
+    {
+      "day": 1,
+      "type": "supply_delay",
+      "params": {
+        "route_id": "port_route",
+        "delay_hours": 48,
+        "congestion_level": 0.8
+      }
+    }
+  ],
+  "expected_impact": {
+    "transport_delay": "high",
+    "delivery_delay_risk": "high",
+    "cost_increase": "medium"
+  }
+}
+

@@ -1,0 +1,22 @@
+{
+  "scenario_name": "holiday_season_spike",
+  "description": "Tăng đột biến mùa lễ",
+  "duration_days": 30,
+  "events": [
+    {
+      "day": 1,
+      "type": "demand_change",
+      "params": {
+        "multiplier": 2.0,
+        "duration_days": 30
+      }
+    }
+  ],
+  "expected_impact": {
+    "demand_surge": "high",
+    "inventory_depletion": "high",
+    "delivery_delay_risk": "medium",
+    "revenue_increase": "high"
+  }
+}
+

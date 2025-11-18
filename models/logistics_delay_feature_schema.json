@@ -1,0 +1,30 @@
+{
+  "feature_names": [
+    "is_weekend",
+    "is_month_start",
+    "is_month_end",
+    "month_sin",
+    "month_cos",
+    "day_of_week_sin",
+    "day_of_week_cos",
+    "is_holiday_season",
+    "shipping_duration_real",
+    "shipping_duration_scheduled",
+    "shipping_duration_diff",
+    "is_late",
+    "is_early",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "wind_speed_10m_mean",
+    "relative_humidity_2m_mean",
+    "weather_risk_level",
+    "category_popularity",
+    "Sales",
+    "sales_7d_avg",
+    "sales_30d_avg",
+    "order_count_7d"
+  ],
+  "model_type": "xgboost",
+  "target": "target_late_delivery",
+  "created_at": "2025-11-14T17:19:01.651508"
+}

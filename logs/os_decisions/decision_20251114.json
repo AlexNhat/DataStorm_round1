@@ -1,0 +1,195 @@
+[
+  {
+    "type": "strategy_ingest",
+    "batch_id": "aafcca80-6ef2-4d39-a8ed-6739c446676d",
+    "strategy_id": "strategy_a",
+    "actions_count": 2,
+    "confidence": 0.75,
+    "metadata": {
+      "plan_token": "4a86d93599f44bf1809527dcb8cf58d9",
+      "region": "VN",
+      "season": "summer",
+      "objectives": [
+        "balance",
+        "min_cost"
+      ],
+      "context": {
+        "objectives": [
+          "balance",
+          "min_cost"
+        ],
+        "region": "VN",
+        "season": "summer",
+        "inputs": {
+          "inventory": 18000,
+          "demand_forecast": 15000,
+          "weather_risk": 0.35,
+          "avg_lead_time": 4,
+          "logistics_cost": 18,
+          "budget_ceiling": 60000,
+          "priorities": {
+            "cost": 7,
+            "lead_time": 5,
+            "service": 6
+          },
+          "risk_tolerance": "medium"
+        },
+        "metadata": {
+          "warehouses": [
+            "WH01",
+            "WH02"
+          ]
+        },
+        "model_results": {
+          "forecast": {
+            "expected_revenue": 120000,
+            "demand_forecast": [
+              12000,
+              15000,
+              18000
+            ]
+          },
+          "delay_risk": {
+            "risk_score": 0.28,
+            "high_risk_orders": 36
+          },
+          "churn": {
+            "churn_rate": 0.18
+          }
+        }
+      },
+      "risk_level": "medium"
+    },
+    "timestamp": "2025-11-14T15:07:22.548450"
+  },
+  {
+    "type": "strategy_ingest",
+    "batch_id": "297f4472-de6e-41e8-b20b-9b86b6ce03a1",
+    "strategy_id": "strategy_a",
+    "actions_count": 2,
+    "confidence": 0.75,
+    "metadata": {
+      "plan_token": "f3fbae223f0e407d920efbdeef7ea394",
+      "requested_at": "2025-11-14T15:49:56.572Z",
+      "region": "VN",
+      "season": "summer",
+      "objectives": [
+        "balance"
+      ],
+      "context": {
+        "objectives": [
+          "balance"
+        ],
+        "region": "VN",
+        "season": "summer",
+        "inputs": {
+          "inventory": 10000,
+          "demand_forecast": 12000,
+          "weather_risk": 0.3,
+          "avg_lead_time": 4,
+          "logistics_cost": 15,
+          "budget_ceiling": 50000,
+          "priorities": {
+            "cost": 5,
+            "lead_time": 5,
+            "service": 5
+          },
+          "risk_tolerance": "medium"
+        },
+        "metadata": {
+          "requested_at": "2025-11-14T15:49:36.566Z"
+        },
+        "model_results": {
+          "forecast": {
+            "expected_revenue": 96000,
+            "demand_forecast": [
+              10200,
+              12000,
+              13200
+            ]
+          },
+          "delay_risk": {
+            "risk_score": 0.44999999999999996,
+            "high_risk_orders": 42
+          },
+          "churn": {
+            "churn_rate": 0.18,
+            "high_value_customers": [
+              "VIP-01",
+              "VIP-18",
+              "VIP-32"
+            ]
+          }
+        }
+      },
+      "mode": "hybrid",
+      "risk_level": "medium"
+    },
+    "timestamp": "2025-11-14T15:49:56.573671"
+  },
+  {
+    "type": "strategy_ingest",
+    "batch_id": "485850f8-0ded-4546-80eb-2d71c0b5b0d6",
+    "strategy_id": "strategy_b",
+    "actions_count": 2,
+    "confidence": 0.7,
+    "metadata": {
+      "plan_token": "f3fbae223f0e407d920efbdeef7ea394",
+      "requested_at": "2025-11-14T15:49:58.923Z",
+      "region": "VN",
+      "season": "summer",
+      "objectives": [
+        "balance"
+      ],
+      "context": {
+        "objectives": [
+          "balance"
+        ],
+        "region": "VN",
+        "season": "summer",
+        "inputs": {
+          "inventory": 10000,
+          "demand_forecast": 12000,
+          "weather_risk": 0.3,
+          "avg_lead_time": 4,
+          "logistics_cost": 15,
+          "budget_ceiling": 50000,
+          "priorities": {
+            "cost": 5,
+            "lead_time": 5,
+            "service": 5
+          },
+          "risk_tolerance": "medium"
+        },
+        "metadata": {
+          "requested_at": "2025-11-14T15:49:36.566Z"
+        },
+        "model_results": {
+          "forecast": {
+            "expected_revenue": 96000,
+            "demand_forecast": [
+              10200,
+              12000,
+              13200
+            ]
+          },
+          "delay_risk": {
+            "risk_score": 0.44999999999999996,
+            "high_risk_orders": 42
+          },
+          "churn": {
+            "churn_rate": 0.18,
+            "high_value_customers": [
+              "VIP-01",
+              "VIP-18",
+              "VIP-32"
+            ]
+          }
+        }
+      },
+      "mode": "hybrid",
+      "risk_level": "medium"
+    },
+    "timestamp": "2025-11-14T15:49:58.925506"
+  }
+]
